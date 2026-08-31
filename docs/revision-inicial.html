@@ -1,0 +1,494 @@
+<title>Revisión técnica Maitén</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --ground:#F6F2E8;
+    --surface:#FFFFFF;
+    --surface-2:#F0EBDD;
+    --ink:#23281C;
+    --ink-soft:#585F45;
+    --ink-faint:#8A8B76;
+    --rule:#DDD6C3;
+    --accent:#5D6E47;
+    --accent-2:#7A8B5C;
+    --coral:#CF7F52;
+    --crit:#A63D2C;
+    --crit-bg:#F3E3DD;
+    --warn:#9C6320;
+    --warn-bg:#F2E7D2;
+    --ok:#3F6E4C;
+    --shadow:0 1px 2px rgba(35,40,28,.06),0 8px 24px rgba(35,40,28,.05);
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --ground:#191C15;
+      --surface:#232720;
+      --surface-2:#2B3027;
+      --ink:#ECE7D8;
+      --ink-soft:#B7B7A0;
+      --ink-faint:#83846E;
+      --rule:#393D30;
+      --accent:#AEBE8E;
+      --accent-2:#95A671;
+      --coral:#E19A6C;
+      --crit:#E38267;
+      --crit-bg:#38241E;
+      --warn:#DBAA62;
+      --warn-bg:#372D1D;
+      --ok:#82B98F;
+      --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.28);
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#191C15;
+    --surface:#232720;
+    --surface-2:#2B3027;
+    --ink:#ECE7D8;
+    --ink-soft:#B7B7A0;
+    --ink-faint:#83846E;
+    --rule:#393D30;
+    --accent:#AEBE8E;
+    --accent-2:#95A671;
+    --coral:#E19A6C;
+    --crit:#E38267;
+    --crit-bg:#38241E;
+    --warn:#DBAA62;
+    --warn-bg:#372D1D;
+    --ok:#82B98F;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.28);
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    background:var(--ground);
+    color:var(--ink);
+    font-family:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+    font-size:16px;
+    line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{
+    max-width:830px;
+    margin:0 auto;
+    padding:clamp(28px,6vw,72px) clamp(20px,5vw,40px) 120px;
+  }
+  @media (prefers-reduced-motion:no-preference){
+    .wrap{animation:rise .5s cubic-bezier(.2,.7,.2,1) both;}
+    @keyframes rise{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
+  }
+
+  /* ---- masthead ---- */
+  .eyebrow{
+    font-family:"IBM Plex Mono",monospace;
+    font-size:12px;
+    letter-spacing:.16em;
+    text-transform:uppercase;
+    color:var(--coral);
+    margin:0 0 14px;
+  }
+  h1{
+    font-family:"Fraunces",Georgia,serif;
+    font-weight:500;
+    font-size:clamp(32px,6vw,44px);
+    line-height:1.08;
+    letter-spacing:-.01em;
+    text-wrap:balance;
+    margin:0 0 16px;
+  }
+  .lede{
+    font-size:clamp(17px,2.4vw,19px);
+    color:var(--ink-soft);
+    max-width:60ch;
+    margin:0 0 22px;
+  }
+  .meta{
+    font-family:"IBM Plex Mono",monospace;
+    font-size:12.5px;
+    color:var(--ink-faint);
+    border-top:1px solid var(--rule);
+    padding-top:14px;
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px 18px;
+  }
+
+  /* ---- verdict ---- */
+  .verdict{
+    background:var(--surface);
+    border:1px solid var(--rule);
+    border-left:4px solid var(--coral);
+    border-radius:10px;
+    padding:22px 24px;
+    margin:38px 0 12px;
+    box-shadow:var(--shadow);
+  }
+  .verdict h2{margin-top:0;border:0;padding:0;font-size:15px;}
+  .verdict p{margin:10px 0 0;}
+  .verdict strong{color:var(--ink);}
+
+  /* ---- sections ---- */
+  section{margin-top:52px;}
+  h2{
+    font-family:"Fraunces",Georgia,serif;
+    font-weight:500;
+    font-size:clamp(22px,3.4vw,27px);
+    letter-spacing:-.005em;
+    margin:0 0 6px;
+    padding-bottom:10px;
+    border-bottom:1px solid var(--rule);
+  }
+  .sectnum{
+    font-family:"IBM Plex Mono",monospace;
+    font-size:13px;
+    color:var(--accent-2);
+    font-weight:500;
+  }
+  h3{
+    font-family:"IBM Plex Sans",sans-serif;
+    font-weight:600;
+    font-size:16.5px;
+    margin:26px 0 4px;
+  }
+  p{margin:12px 0;}
+  a{color:var(--accent);text-underline-offset:2px;}
+  strong{font-weight:600;}
+  ul{margin:12px 0;padding-left:22px;}
+  li{margin:7px 0;}
+  li::marker{color:var(--accent-2);}
+
+  code{
+    font-family:"IBM Plex Mono",monospace;
+    font-size:.86em;
+    background:var(--surface-2);
+    padding:1.5px 5px;
+    border-radius:4px;
+    border:1px solid var(--rule);
+  }
+
+  /* ---- findings ---- */
+  .finding{
+    background:var(--surface);
+    border:1px solid var(--rule);
+    border-radius:10px;
+    padding:16px 18px;
+    margin:14px 0;
+    box-shadow:var(--shadow);
+  }
+  .finding{border-left:4px solid var(--accent-2);}
+  .finding.crit{border-left-color:var(--crit);}
+  .finding.warn{border-left-color:var(--warn);}
+  .finding-head{
+    display:flex;
+    align-items:baseline;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-bottom:2px;
+  }
+  .finding-head h3{margin:0;font-size:16px;}
+  .chip{
+    font-family:"IBM Plex Mono",monospace;
+    font-size:10.5px;
+    font-weight:500;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    padding:2px 8px;
+    border-radius:99px;
+    white-space:nowrap;
+  }
+  .chip.crit{background:var(--crit-bg);color:var(--crit);}
+  .chip.warn{background:var(--warn-bg);color:var(--warn);}
+  .chip.arch{background:var(--surface-2);color:var(--ink-soft);}
+  .finding p{margin:8px 0 0;font-size:14.5px;color:var(--ink-soft);}
+  .finding p:first-of-type{color:var(--ink);}
+
+  /* ---- table ---- */
+  .table-scroll{overflow-x:auto;margin:18px 0;border:1px solid var(--rule);border-radius:10px;}
+  table{border-collapse:collapse;width:100%;font-size:14px;min-width:560px;}
+  th,td{text-align:left;padding:11px 15px;border-bottom:1px solid var(--rule);vertical-align:top;}
+  thead th{
+    background:var(--surface-2);
+    font-family:"IBM Plex Mono",monospace;
+    font-size:11px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    font-weight:500;
+  }
+  tbody tr:last-child td{border-bottom:0;}
+  td:first-child{font-weight:600;white-space:nowrap;}
+
+  /* ---- phases ---- */
+  .phase{
+    display:grid;
+    grid-template-columns:auto 1fr;
+    gap:2px 18px;
+    padding:18px 0;
+    border-bottom:1px solid var(--rule);
+  }
+  .phase:last-child{border-bottom:0;}
+  .phase-n{
+    grid-row:1/3;
+    font-family:"Fraunces",Georgia,serif;
+    font-size:30px;
+    line-height:1;
+    color:var(--accent-2);
+    font-weight:500;
+  }
+  .phase-t{font-weight:600;font-size:16px;}
+  .phase-t span{
+    font-family:"IBM Plex Mono",monospace;
+    font-weight:400;
+    font-size:12px;
+    color:var(--ink-faint);
+    margin-left:8px;
+  }
+  .phase-b{color:var(--ink-soft);font-size:14.5px;}
+  .phase-b ul{margin:8px 0 0;}
+  .phase-b li{margin:4px 0;font-size:14px;}
+
+  .decide{
+    background:var(--surface);
+    border:1px solid var(--rule);
+    border-radius:10px;
+    padding:20px 22px;
+    margin-top:18px;
+    box-shadow:var(--shadow);
+  }
+  .decide .opt{padding:12px 0;border-bottom:1px dashed var(--rule);}
+  .decide .opt:last-child{border-bottom:0;padding-bottom:0;}
+  .decide .opt b{color:var(--ink);}
+  .tag-rec{color:var(--ok);font-weight:600;font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.06em;}
+  .tag-alt{color:var(--ink-faint);font-weight:500;font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.06em;}
+
+  footer{
+    margin-top:64px;
+    padding-top:16px;
+    border-top:1px solid var(--rule);
+    font-family:"IBM Plex Mono",monospace;
+    font-size:12px;
+    color:var(--ink-faint);
+  }
+  ::selection{background:var(--accent-2);color:var(--ground);}
+</style>
+
+<div class="wrap">
+
+  <p class="eyebrow">Revisión de arquitectura</p>
+  <h1>Maitén: qué recibiste y hacia dónde llevarlo</h1>
+  <p class="lede">Análisis del archivo que te pasó Lautaro, los problemas que hay que resolver antes de exponerlo, y una propuesta de stack y plan para arrancar en Vercel sobre una base que escale.</p>
+  <div class="meta">
+    <span>Archivo analizado · maiten.html + docs</span>
+    <span>31 ago 2026</span>
+    <span>Para: Federico</span>
+  </div>
+
+  <div class="verdict">
+    <h2>Veredicto rápido</h2>
+    <p>Lo que recibiste es <strong>un prototipo válido con un modelo de negocio muy bien pensado</strong>, montado sobre una <strong>base técnica que no se puede llevar a producción tal cual</strong>. El pensamiento de producto (los <code>.md</code> de Lautaro) es excelente y se conserva entero. La implementación —un HTML de 6.980 líneas y una "base de datos" que es un único JSON— hay que rehacerla.</p>
+    <p>Estás en el <strong>mejor momento posible para rehacerla</strong>: 2 productos cargados, 0 ventas, 1 usuario. Recomiendo reconstruir sobre <strong>Next.js + Supabase normalizado</strong> ahora, y no después de acumular datos reales. <strong>No subas el <code>maiten.html</code> actual a un dominio público</strong> — hoy es una base de datos sin candado.</p>
+  </div>
+
+  <section>
+    <h2><span class="sectnum">01 · </span>Qué hay en la carpeta</h2>
+    <p>Seis archivos. El sistema en sí es un único HTML monolítico; el resto es documentación y setup.</p>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>Archivo</th><th>Qué es</th><th>Estado</th></tr></thead>
+        <tbody>
+          <tr><td>maiten.html</td><td>El sistema completo: HTML + CSS + ~6.000 líneas de JS, todo inline. Adaptado de un sistema previo para un club de rugby.</td><td>Funciona abriéndolo en el navegador</td></tr>
+          <tr><td>maiten-BACKUP.html</td><td>Copia del original del club antes de adaptarlo.</td><td>Referencia histórica</td></tr>
+          <tr><td>HANDOFF_TECNICO.md</td><td>Documento de traspaso de Lautaro. Contexto de negocio, decisiones y backlog.</td><td>Muy valioso — leer entero</td></tr>
+          <tr><td>ESTADO_22-04-2026.md</td><td>Cierre de la última sesión de trabajo.</td><td>Contexto</td></tr>
+          <tr><td>supabase_setup.sql</td><td>Crea la tabla <code>app_state</code>: una fila, una columna <code>jsonb</code>, RLS abierto.</td><td>Se reemplaza por un schema real</td></tr>
+          <tr><td>Maiten.txt</td><td>URL y key de Supabase sueltas en texto plano.</td><td>Secreto expuesto — rotar</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>Cómo está armado hoy</h3>
+    <ul>
+      <li><strong>Frontend:</strong> un <code>&lt;script&gt;</code> con ~300 funciones globales (<code>rProds</code>, <code>rClis</code>, <code>stRender</code>…). Sin módulos, sin tipos, sin build, sin tests. JavaScript ES5 (<code>var</code>, <code>function</code>).</li>
+      <li><strong>Backend:</strong> Supabase. Pero se usa como un balde: toda la operación del negocio vive en <em>una fila</em> de la tabla <code>app_state</code>, en un solo blob JSON.</li>
+      <li><strong>Persistencia:</strong> offline-first. El estado se serializa a <code>localStorage</code> (key <code>lc6</code>) y se sube a Supabase con <code>upsert</code> en segundo plano.</li>
+      <li><strong>Auth:</strong> no hay. Un <code>for</code> compara usuario y contraseña contra un array en el propio JS.</li>
+      <li><strong>Sin git.</strong> El propio handoff lo marca como "prioridad cero".</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2><span class="sectnum">02 · </span>Hallazgos críticos — bloquean el deploy</h2>
+    <p>Cinco cosas que hacen inseguro exponer el sistema como está. Ninguna es culpa del diseño de negocio; son consecuencia de que el prototipo nunca fue pensado para estar en internet.</p>
+
+    <div class="finding crit">
+      <div class="finding-head"><h3>La base de datos está abierta al público</h3><span class="chip crit">Seguridad</span></div>
+      <p>La policy de RLS es <code>using(true) with check(true)</code> y la <code>publishable key</code> está incrustada en el HTML (y repetida en tres <code>.md</code> y en <code>Maiten.txt</code>). Con esa URL y esa key, cualquiera puede leer, sobrescribir o borrar toda la base con un <code>curl</code>. La función <code>resetearDatos()</code> hace un <code>DELETE</code> de la fila sin ninguna autenticación.</p>
+      <p>Si subís esto a Vercel tal cual, publicás una base de datos sin llave. Un bot que rastree el repo o cualquiera que abra "ver código fuente" tiene control total.</p>
+    </div>
+
+    <div class="finding crit">
+      <div class="finding-head"><h3>Contraseñas en texto plano</h3><span class="chip crit">Seguridad</span></div>
+      <p><code>{usuario:'admin', pass:'maiten2026', rol:'admin'}</code> se guarda tal cual dentro del blob JSON — que, por el punto anterior, es de lectura pública. Cuando agregues usuarios para las socias, cada contraseña queda a la vista.</p>
+    </div>
+
+    <div class="finding crit">
+      <div class="finding-head"><h3>No hay autenticación real</h3><span class="chip crit">Seguridad</span></div>
+      <p>El login compara strings en el navegador. Se saltea desde la consola del navegador ocultando el <code>&lt;div id="login"&gt;</code> o llamando a <code>goTo(...)</code> directo. El control de roles (<code>PR[usr.rol]</code>) también es solo visual: oculta botones del sidebar, no protege datos.</p>
+    </div>
+
+    <div class="finding warn">
+      <div class="finding-head"><h3>La función de IA no funciona y, si la arreglás mal, filtra la key</h3><span class="chip warn">Seguridad</span></div>
+      <p>En <code>iaSend()</code> (línea ~2592) se hace <code>fetch</code> a <code>api.anthropic.com</code> desde el navegador sin header <code>x-api-key</code>: hoy devuelve 401 y nunca respondió. Si le pegás la API key ahí para que ande, queda expuesta a cualquier usuario. Esa llamada tiene que vivir en el servidor. El modelo que pide (<code>claude-sonnet-4-20250514</code>) además está discontinuado.</p>
+    </div>
+
+    <div class="finding warn">
+      <div class="finding-head"><h3>Secretos versionados y sin rotar</h3><span class="chip warn">Higiene</span></div>
+      <p>La URL y la key del proyecto Supabase están en cuatro archivos de texto. Antes de poner nada en un repo, hay que rotar esas credenciales (o crear un proyecto nuevo) y mover todo a variables de entorno.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="sectnum">03 · </span>Hallazgos de arquitectura — te van a frenar el crecimiento</h2>
+
+    <div class="finding">
+      <div class="finding-head"><h3>Todo el negocio en una fila y un blob JSON</h3><span class="chip arch">Datos</span></div>
+      <p>Cada cambio —marcar una venta, editar un precio— reescribe <em>el estado completo</em> de la aplicación. Dos consecuencias graves:</p>
+      <p><strong>Pérdida silenciosa de datos con más de un usuario.</strong> Si Nati y una socia guardan algo el mismo rato, la última en escribir pisa a la primera (last-write-wins). Este es el problema que te va a morder apenas dos personas usen el sistema el mismo día.</p>
+      <p><strong>No escala.</strong> Sin queries, sin índices, sin integridad referencial. Cada reporte carga el JSON entero a memoria y filtra en JS. A unos pocos miles de movimientos el blob pesa varios MB y cada carga y cada guardado se arrastran.</p>
+    </div>
+
+    <div class="finding">
+      <div class="finding-head"><h3>Sin trazabilidad</h3><span class="chip arch">Datos</span></div>
+      <p>Existe un array <code>auditoria</code> pero está vacío y nada lo llena. No hay registro de quién cambió qué ni cuándo — algo que el propio backlog marca como bloqueante para producción.</p>
+    </div>
+
+    <div class="finding">
+      <div class="finding-head"><h3>Monolito de 6.980 líneas, scope global único</h3><span class="chip arch">Código</span></div>
+      <p>Todo comparte el mismo espacio de nombres. No hay forma de testear una pieza aislada, y dos personas tocando el archivo produce conflictos de merge garantizados (el handoff lo dice explícitamente). Sin TypeScript, cualquier cambio de forma de dato se descubre en runtime.</p>
+    </div>
+
+    <div class="finding">
+      <div class="finding-head"><h3>Herencia del club de rugby sin limpiar</h3><span class="chip arch">Deuda</span></div>
+      <p>Modelo de variantes "dummy" (talle/color) que no representa nada real; módulos de rugby ocultos pero presentes en el código; hardcodes "Rugby/Hockey/Extras" en formularios; un select de "deporte" en el alta de rubros; colores celestes sueltos que no son de la paleta Maitén. Rehacer limpio elimina toda esta clase de bugs de raíz.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="sectnum">04 · </span>Qué se rescata — y es mucho</h2>
+    <p>El valor del proyecto no está en el código: está en que <strong>el problema ya está entendido y modelado</strong>. Nada de esto se tira.</p>
+    <ul>
+      <li><strong>El diseño de dominio.</strong> Los <code>.md</code> de Lautaro son la especificación del producto: 8 tipos de movimiento (ingreso, venta, consignación, canje, presentación, regalo, rotura, devolución), consignaciones con vencimiento y estado, CC de clientes y proveedores, producción por lotes, reporte económico mensual. Eso es oro y se implementa tal cual.</li>
+      <li><strong>La lógica contable de partida doble</strong> ya está diseñada y rodada con el club. Se porta.</li>
+      <li><strong>La UX de cada módulo</strong> ya fue pensada y validada en uso real. Sirve como referencia visual directa.</li>
+      <li><strong>Supabase como backend es la elección correcta.</strong> El problema es <em>cómo</em> se usa (un blob), no la herramienta.</li>
+      <li><strong>La marca ya está aplicada:</strong> paleta oficial (verde oliva <code>#7A8B5C</code> / coral <code>#E8A87C</code> / crema) y logos en el brand book.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2><span class="sectnum">05 · </span>Stack recomendado</h2>
+    <p>Objetivo: deploy en Vercel, que escale sin que tengas que pensar en infraestructura, con tipos de punta a punta y tests. Todo esto es estándar de la industria y tiene tier gratuito generoso.</p>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>Capa</th><th>Hoy</th><th>Recomendado</th><th>Por qué</th></tr></thead>
+        <tbody>
+          <tr><td>Framework</td><td>HTML plano</td><td>Next.js 15 (App Router) + TypeScript</td><td>SSR, API routes para lo server-side, preview deploy por rama, escala solo en Vercel.</td></tr>
+          <tr><td>Base de datos</td><td>1 fila JSONB</td><td>Supabase Postgres, schema normalizado (tabla por entidad)</td><td>Queries reales, índices, integridad referencial, sin last-write-wins.</td></tr>
+          <tr><td>ORM / migraciones</td><td>—</td><td>Drizzle ORM</td><td>Schema en TypeScript, migraciones versionadas y tipadas.</td></tr>
+          <tr><td>Auth y permisos</td><td>Array en el JS</td><td>Supabase Auth + tabla <code>perfiles</code> + RLS por rol</td><td>Sesiones reales, contraseñas hasheadas por Supabase, permisos aplicados en la base.</td></tr>
+          <tr><td>Datos en el cliente</td><td><code>localStorage</code> + sync manual</td><td>TanStack Query</td><td>Cache, revalidación e invalidación resueltas.</td></tr>
+          <tr><td>UI</td><td>CSS a mano</td><td>Tailwind + shadcn/ui, paleta Maitén como theme</td><td>Componentes accesibles, rápido de construir, consistente.</td></tr>
+          <tr><td>Tablas</td><td>"smart table" casera</td><td>TanStack Table</td><td>Orden, filtro y agrupación probados; menos código propio que mantener.</td></tr>
+          <tr><td>Validación</td><td>Checks sueltos</td><td>Zod (schema compartido cliente/servidor)</td><td>Una sola definición de "qué es una venta válida".</td></tr>
+          <tr><td>IA (análisis)</td><td><code>fetch</code> desde el browser, roto</td><td>API route <code>/api/analisis</code>, key en env de Vercel, modelo <code>claude-sonnet-5</code></td><td>La key nunca sale del servidor.</td></tr>
+          <tr><td>Gráficos</td><td>Chart.js por CDN</td><td>Recharts (o seguir con Chart.js)</td><td>Integra con React; decisión menor.</td></tr>
+          <tr><td>Tests / CI</td><td>—</td><td>Vitest + Playwright + GitHub Actions</td><td>Typecheck, lint y tests en cada push; previews de Vercel por PR.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="sectnum">06 · </span>Plan por fases</h2>
+    <p>Los tiempos son orientativos y dependen de cuántas horas le metas. El orden sí importa: cada fase deja algo usable.</p>
+
+    <div class="phase">
+      <div class="phase-n">0</div>
+      <div class="phase-t">Higiene<span>día 1, antes de tocar código</span></div>
+      <div class="phase-b">
+        <ul>
+          <li>Rotar las credenciales de Supabase o crear un proyecto nuevo. Las actuales están quemadas.</li>
+          <li>Repo privado en GitHub. <code>.gitignore</code>, <code>.env.local</code>, secretos fuera del código.</li>
+          <li>No exponer el <code>maiten.html</code> actual en ningún dominio público.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="phase-n">1</div>
+      <div class="phase-t">Esqueleto en producción<span>~semana 1</span></div>
+      <div class="phase-b">
+        <ul>
+          <li><code>create-next-app</code> con TypeScript + Tailwind + shadcn/ui.</li>
+          <li>Supabase nuevo: schema normalizado inicial, Supabase Auth, RLS por rol.</li>
+          <li>Layout base (topbar + sidebar + ruteo por módulo) y login real.</li>
+          <li>Deploy a Vercel. Al cierre de la semana tenés la cáscara en producción con login funcionando.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="phase-n">2</div>
+      <div class="phase-t">Portar el núcleo<span>~semanas 2–5</span></div>
+      <div class="phase-b">
+        Por orden de valor para Nati:
+        <ul>
+          <li>Productos + variantes rediseñadas (presentación / fragancia) + Storage para fotos.</li>
+          <li>Clientes y Proveedores.</li>
+          <li>Movimientos: los 8 tipos, con la lógica condicional de la spec de Lautaro. Es el corazón.</li>
+          <li>Stock + ficha de producto con el KPI grande.</li>
+          <li>CC Clientes / CC Proveedores.</li>
+          <li>Reporte económico mensual por producto y tipo de movimiento.</li>
+          <li>Contabilidad de partida doble (portar la lógica ya existente).</li>
+          <li>Consignaciones con vencimiento y estado (pendiente / vendido / devuelto).</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="phase-n">3</div>
+      <div class="phase-t">Integraciones externas<span>después</span></div>
+      <div class="phase-b">
+        <ul>
+          <li>Tiendanube: webhooks de venta para sincronizar stock.</li>
+          <li>Facturación electrónica (AFIP).</li>
+          <li>Producción / órdenes de fabricación por lote con consumo de insumos.</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3>Migración de datos</h3>
+    <p>Un script único que lee el blob JSON actual y lo inserta normalizado. Es trivial: hoy hay 2 productos, 0 ventas y 1 usuario. <strong>Cada semana de uso real de la versión vieja hace esta migración más cara</strong> — otro motivo para rehacer ahora.</p>
+  </section>
+
+  <section>
+    <h2><span class="sectnum">07 · </span>La decisión que necesito de vos</h2>
+    <p>Antes de escribir una línea, definí cuál de estos dos caminos tomamos.</p>
+    <div class="decide">
+      <div class="opt">
+        <p><span class="tag-rec">RECOMENDADO</span> &nbsp; <b>Reconstruir sobre Next.js + Supabase normalizado, ahora.</b></p>
+        <p>Estás en el punto ideal: casi no hay datos ni usuarios, y todo el diseño de producto ya está hecho en los <code>.md</code>. Reescribís la implementación, no el pensamiento. En ~1 semana tenés el esqueleto en Vercel y de ahí portás módulo por módulo, con cada uno usable al terminarlo.</p>
+      </div>
+      <div class="opt">
+        <p><span class="tag-alt">ALTERNATIVA</span> &nbsp; <b>Asegurar el HTML actual y deployarlo en 2–3 días.</b></p>
+        <p>Sirve para una demo rápida a las socias: Auth real, RLS cerrado, keys rotadas, IA movida al servidor. Pero seguís arrastrando el blob JSON y el monolito, vas a chocar con el last-write-wins apenas haya dos usuarios, y vas a reescribir igual en un par de meses — con más datos y más caro.</p>
+      </div>
+    </div>
+    <p>Si vas por el camino recomendado, mi primer paso concreto es la Fase 0 y el scaffold del proyecto nuevo.</p>
+  </section>
+
+  <footer>
+    Revisión sobre maiten.html (6.980 líneas) + HANDOFF_TECNICO.md + ESTADO_22-04-2026.md + supabase_setup.sql · 31 ago 2026
+  </footer>
+
+</div>
