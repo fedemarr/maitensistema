@@ -18,12 +18,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { getProducto } from "@/features/productos/queries";
+import { getProducto, listMovimientosDeProducto } from "@/features/productos/queries";
 import { getFotoUrl } from "@/features/productos/storage";
 import { puedeEscribir, requireUser } from "@/lib/auth";
 import { fmtMoney, fmtNumber } from "@/lib/format";
 
 import { ProductoAcciones } from "./_acciones";
+import { HistoricoMovimientos } from "./_components/historico-movimientos";
 
 export default async function FichaProductoPage({
   params,
@@ -34,6 +35,7 @@ export default async function FichaProductoPage({
   const user = await requireUser();
   const producto = await getProducto(id);
   if (!producto) notFound();
+  const movimientos = await listMovimientosDeProducto(id);
 
   const editable = puedeEscribir(user.rol);
   const fotoUrl = await getFotoUrl(producto.fotoPath);
@@ -192,6 +194,8 @@ export default async function FichaProductoPage({
           </div>
         </CardContent>
       </Card>
+
+      <HistoricoMovimientos movimientos={movimientos} />
     </div>
   );
 }

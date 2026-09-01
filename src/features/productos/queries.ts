@@ -1,9 +1,18 @@
 import "server-only";
 
-import { and, asc, count, eq, ne, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, lte, ne, sql } from "drizzle-orm";
 
 import { db } from "@/db";
-import { movimientoItems, productos } from "@/db/schema";
+import {
+  clientes,
+  mediosPago,
+  movimientoItems,
+  movimientos,
+  productos,
+  proveedores,
+  variantes,
+} from "@/db/schema";
+import type { TipoMovimiento } from "@/features/movimientos/schema";
 
 export type ProductoListItem = {
   id: string;
@@ -82,4 +91,64 @@ export async function contarMovimientosDeVariante(
     .from(movimientoItems)
     .where(eq(movimientoItems.varianteId, varianteId));
   return row?.n ?? 0;
+}
+
+export type MovimientoProducto = {
+  itemId: string;
+  varianteId: string;
+  varianteNombre: string;
+  cantidad: number;
+  precioUnit: string;
+  costoUnit: string;
+  movimientoId: string;
+  tipo: TipoMovimiento;
+  fecha: string;
+  notas: string | null;
+  medioPago: string | null;
+  clienteNombre: string | null;
+  proveedorNombre: string | null;
+};
+
+export type FiltrosHistorico =
+  | {
+      tipo?: TipoMovimiento;
+      desde?: string;
+      hasta?: string;
+    }
+  | undefined;
+
+/** Ítems de movimiento del producto (de todas sus variantes), recientes primero. */
+export async function listMovimientosDeProducto(
+  productoId: string,
+  filtros: FiltrosHistorico = {},
+): Promise<MovimientoProducto[]> {
+  const conditions = [eq(variantes.productoId, productoId)];
+  if (filtros.tipo) conditions.push(eq(movimientos.tipo, filtros.tipo));
+  if (filtros.desde) conditions.push(gte(movimientos.fecha, filtros.desde));
+  if (filtros.hasta) conditions.push(lte(movimientos.fecha, filtros.hasta));
+
+  return db
+    .select({
+      itemId: movimientoItems.id,
+      varianteId: movimientoItems.varianteId,
+      varianteNombre: variantes.nombre,
+      cantidad: movimientoItems.cantidad,
+      precioUnit: movimientoItems.precioUnit,
+      costoUnit: movimientoItems.costoUnit,
+      movimientoId: movimientos.id,
+      tipo: movimientos.tipo,
+      fecha: movimientos.fecha,
+      notas: movimientos.notas,
+      medioPago: mediosPago.nombre,
+      clienteNombre: clientes.nombre,
+      proveedorNombre: proveedores.nombre,
+    })
+    .from(movimientoItems)
+    .innerJoin(variantes, eq(movimientoItems.varianteId, variantes.id))
+    .innerJoin(movimientos, eq(movimientoItems.movimientoId, movimientos.id))
+    .leftJoin(mediosPago, eq(movimientos.medioPagoId, mediosPago.id))
+    .leftJoin(clientes, eq(movimientos.clienteId, clientes.id))
+    .leftJoin(proveedores, eq(movimientos.proveedorId, proveedores.id))
+    .where(and(...conditions))
+    .orderBy(desc(movimientos.fecha), desc(movimientos.createdAt));
 }
