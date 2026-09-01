@@ -114,7 +114,7 @@ Estado por módulo:
 - ✅ **Productos** (Fase 1)
 - ✅ **Rubros** — `/config/rubros`
 - ✅ **Clientes** — `/clientes`
-- ⏳ Proveedores
+- ✅ **Proveedores** — `/proveedores`
 - ⏳ Movimientos (motor de stock)
 - ⏳ Panel de stock
 - ⏳ Ficha de producto (historial/resumen)

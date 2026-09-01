@@ -21,7 +21,7 @@ const NAV: { seccion: string; items: NavItem[] }[] = [
     items: [
       { href: "/productos", label: "Productos", ready: true },
       { href: "/clientes", label: "Clientes", ready: true },
-      { href: "/proveedores", label: "Proveedores" },
+      { href: "/proveedores", label: "Proveedores", ready: true },
     ],
   },
   {
