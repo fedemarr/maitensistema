@@ -11,9 +11,18 @@ import {
 import { listStock } from "@/features/stock/queries";
 import { fmtNumber } from "@/lib/format";
 
-const PROXIMO = [
-  "Contabilidad (diseño)",
+const HECHO = [
+  "Rubros — /config/rubros",
+  "Clientes — /clientes",
+  "Proveedores — /proveedores",
+  "Movimientos — /movimientos (motor de stock)",
+  "Panel de stock — /stock",
+  "Cuentas corrientes — /cc-clientes, /cc-proveedores",
+  "Reporte económico — /reportes",
+  "Consignaciones — /consignaciones",
 ];
+
+const PROXIMO = ["Contabilidad (diseño) — docs/contabilidad-diseno.md"];
 
 export default async function DashboardPage() {
   const filas = await listStock();
@@ -85,8 +94,29 @@ export default async function DashboardPage() {
 
       <Card>
         <CardHeader>
+          <CardTitle className="text-base">Módulos de Fase 2</CardTitle>
+          <CardDescription>
+            Lo construido en esta fase, con acceso desde el menú.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ul className="space-y-1 text-sm">
+            {HECHO.map((m) => (
+              <li key={m}>
+                <Badge variant="secondary" className="mr-2 align-middle">
+                  OK
+                </Badge>
+                {m}
+              </li>
+            ))}
+          </ul>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle className="text-base">Próximos pasos</CardTitle>
-          <CardDescription>Orden de construcción (Fase 2).</CardDescription>
+          <CardDescription>Falta revisar en la Fase 2.</CardDescription>
         </CardHeader>
         <CardContent>
           <ol className="list-decimal space-y-1.5 pl-5 text-sm">
