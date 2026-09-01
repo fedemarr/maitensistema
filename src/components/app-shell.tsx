@@ -1,7 +1,9 @@
 import Link from "next/link";
 
 import { logout } from "@/app/(auth)/login/actions";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import type { Rol } from "@/lib/auth";
 
 type NavItem = { href: string; label: string; ready?: boolean };
 
@@ -17,7 +19,7 @@ const NAV: { seccion: string; items: NavItem[] }[] = [
   {
     seccion: "Registros",
     items: [
-      { href: "/productos", label: "Productos" },
+      { href: "/productos", label: "Productos", ready: true },
       { href: "/clientes", label: "Clientes" },
       { href: "/proveedores", label: "Proveedores" },
     ],
@@ -34,33 +36,45 @@ const NAV: { seccion: string; items: NavItem[] }[] = [
   {
     seccion: "Configuración",
     items: [
-      { href: "/config/usuarios", label: "Usuarios" },
       { href: "/config/rubros", label: "Rubros" },
+      { href: "/config/usuarios", label: "Usuarios" },
     ],
   },
 ];
 
+const ROL_LABEL: Record<Rol, string> = {
+  admin: "Admin",
+  ventas: "Ventas",
+  lectura: "Solo lectura",
+};
+
 export function AppShell({
+  nombre,
   email,
+  rol,
   children,
 }: {
+  nombre: string;
   email: string;
+  rol: Rol;
   children: React.ReactNode;
 }) {
   return (
     <div className="flex min-h-full flex-col">
       <header className="flex h-14 items-center gap-3 border-b bg-primary px-4 text-primary-foreground">
         <span className="font-semibold">Maitén</span>
-        <span className="text-xs opacity-80">Sistema de gestión</span>
+        <span className="hidden text-xs opacity-80 sm:inline">
+          Sistema de gestión
+        </span>
         <div className="ml-auto flex items-center gap-3 text-sm">
-          <span className="hidden opacity-90 sm:inline">{email}</span>
+          <span className="hidden opacity-90 md:inline" title={email}>
+            {nombre}
+          </span>
+          <Badge variant="secondary" className="hidden sm:inline-flex">
+            {ROL_LABEL[rol]}
+          </Badge>
           <form action={logout}>
-            <Button
-              type="submit"
-              variant="secondary"
-              size="sm"
-              className="h-8"
-            >
+            <Button type="submit" variant="secondary" size="sm" className="h-8">
               Salir
             </Button>
           </form>
@@ -97,7 +111,7 @@ export function AppShell({
           ))}
         </nav>
 
-        <main className="flex-1 p-4 md:p-6">{children}</main>
+        <main className="min-w-0 flex-1 p-4 md:p-6">{children}</main>
       </div>
     </div>
   );

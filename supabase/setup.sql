@@ -95,11 +95,28 @@ create policy "admin gestiona perfiles" on public.perfiles
   using (public.rol_actual() = 'admin')
   with check (public.rol_actual() = 'admin');
 
+-- 4. Storage: bucket privado `productos` + políticas -------------------------
+
+insert into storage.buckets (id, name, public)
+values ('productos', 'productos', false)
+on conflict (id) do nothing;
+
+drop policy if exists "productos lee autenticado" on storage.objects;
+create policy "productos lee autenticado" on storage.objects
+  for select to authenticated
+  using (bucket_id = 'productos');
+
+drop policy if exists "productos escribe segun rol" on storage.objects;
+create policy "productos escribe segun rol" on storage.objects
+  for all to authenticated
+  using (bucket_id = 'productos' and public.puede_escribir())
+  with check (bucket_id = 'productos' and public.puede_escribir());
+
 -- ─────────────────────────────────────────────────────────────
 -- Después de correr esto:
 --   1. Authentication → Users → Add user  (creá tu usuario admin).
 --   2. Volvé acá y corré:
 --        update public.perfiles set rol = 'admin'
 --        where id = (select id from auth.users where email = 'TU_EMAIL');
---   3. Storage → New bucket → "productos" (privado).
+--   3. (opcional) pnpm db:seed  para cargar rubros y productos de ejemplo.
 -- ─────────────────────────────────────────────────────────────
