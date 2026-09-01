@@ -1,8 +1,8 @@
 # Contabilidad de partida doble — diseño (Módulo I)
 
-> **Estado: IMPLEMENTADO** (ramas `fase-2`, commit final del Módulo I). Este
+> **Estado: IMPLEMENTADO** (rama `fase-2`, commit `850cf6c`). Este
 > documento describe el modelo y las reglas tal como quedaron implementadas.
-> Las desviaciones respecto del diseño original se listan al final (§7).
+> Las desviaciones respecto del diseño original se listan al final (§8).
 
 ---
 

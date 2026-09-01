@@ -64,7 +64,7 @@ Actualizado al cierre de la ejecución (rama `fase-2`).
     asiento automático nace `confirmado`; `movimientos.consignacion_id` sin FK
     (uuid plano) para evitar la circularidad TS. Ver `docs/contabilidad-diseno.md` §8.
   - Migración `0003` (esquema + seed) ya aplicada en la DB de dev.
-  - Commits `d8b3edc` (diseño) y el commit final del Módulo I (implementación).
+  - Commits `d8b3edc` (diseño) y `850cf6c` (implementación).
 
 ## Decisiones técnicas (invariantes del motor de stock)
 
