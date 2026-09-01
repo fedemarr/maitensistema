@@ -173,7 +173,17 @@ export async function crearMovimiento(
         varianteId: item.varianteId,
         cantidad: d.cantidad,
         precioUnit: String(item.precioUnit),
-        costoUnit: String(item.costoUnit),
+        costoUnit:
+          regla.signo === 1
+            ? String(item.costoUnit)
+            : String(
+                (
+                  await tx.query.variantes.findFirst({
+                    where: eq(variantes.id, item.varianteId),
+                    columns: { costoPromedio: true },
+                  })
+                )?.costoPromedio ?? 0,
+              ),
       });
 
       // Actualización atómica (invariante 7): set stock = stock + delta.

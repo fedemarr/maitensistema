@@ -12,7 +12,6 @@ import { listStock } from "@/features/stock/queries";
 import { fmtNumber } from "@/lib/format";
 
 const PROXIMO = [
-  "Reporte económico mensual",
   "Consignaciones",
   "Contabilidad (diseño)",
 ];

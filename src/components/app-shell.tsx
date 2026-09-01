@@ -28,10 +28,10 @@ const NAV: { seccion: string; items: NavItem[] }[] = [
   {
     seccion: "Finanzas",
     items: [
-      { href: "/cc-clientes", label: "CC Clientes" },
-      { href: "/cc-proveedores", label: "CC Proveedores" },
+      { href: "/cc-clientes", label: "CC Clientes", ready: true },
+      { href: "/cc-proveedores", label: "CC Proveedores", ready: true },
       { href: "/contabilidad", label: "Contabilidad" },
-      { href: "/reportes", label: "Reportes" },
+      { href: "/reportes", label: "Reportes", ready: true },
     ],
   },
   {
