@@ -8,6 +8,20 @@
       "when": 1788211739229,
       "tag": "0000_daffy_synch",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1788273891486,
+      "tag": "0001_thick_doomsday",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1788273980924,
+      "tag": "0002_careful_betty_ross",
+      "breakpoints": true
     }
   ]
 }

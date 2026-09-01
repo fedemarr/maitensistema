@@ -10,7 +10,7 @@ const PROXIMO = [
   "✅ Rubros — /config/rubros (crear + activar/desactivar)",
   "✅ Clientes — /clientes (CRUD + búsqueda y filtro por tipo)",
   "✅ Proveedores — /proveedores (CRUD completo)",
-  "Módulo Movimientos (los 8 tipos) — motor de stock",
+  "✅ Movimientos — /movimientos (motor de stock, 8 tipos + ajuste)",
   "Panel de stock (verificarStock)",
   "Ficha de producto con historial/resumen",
   "Reporte económico mensual",

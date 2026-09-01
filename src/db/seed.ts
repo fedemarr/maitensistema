@@ -18,12 +18,22 @@ const client = postgres(process.env.DATABASE_URL, { prepare: false });
 const db = drizzle(client, { schema, casing: "snake_case" });
 
 async function main() {
-  const { rubros, productos, variantes } = schema;
+  const { rubros, productos, variantes, mediosPago } = schema;
 
   await db
     .insert(rubros)
     .values([{ nombre: "Capilar" }, { nombre: "Corporal" }])
     .onConflictDoNothing();
+
+  await db
+    .insert(mediosPago)
+    .values([
+      { nombre: "Efectivo", esCredito: false },
+      { nombre: "Transferencia", esCredito: false },
+      { nombre: "Mercado Pago", esCredito: false },
+      { nombre: "Crédito", esCredito: true },
+    ])
+    .onConflictDoNothing({ target: mediosPago.nombre });
 
   const capilar = await db.query.rubros.findFirst({
     where: eq(rubros.nombre, "Capilar"),
@@ -71,7 +81,7 @@ async function main() {
     }
   }
 
-  console.log("Seed OK: rubros y productos de ejemplo cargados.");
+  console.log("Seed OK: rubros, productos y medios de pago de ejemplo cargados.");
 }
 
 main()

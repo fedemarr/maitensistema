@@ -291,13 +291,25 @@ export function ProductoForm({
                 />
               </div>
               <div className="grid gap-1.5">
-                <Label className="text-xs">Stock</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  value={v.stock}
-                  onChange={(e) => setVar(v.key, { stock: e.target.value })}
-                />
+                <Label className="text-xs">
+                  {v.id ? "Stock actual" : "Stock inicial"}
+                </Label>
+                {v.id ? (
+                  <>
+                    <Input value={v.stock} disabled />
+                    <p className="text-[11px] text-muted-foreground">
+                      Se ajusta desde Movimientos.
+                    </p>
+                  </>
+                ) : (
+                  <Input
+                    type="number"
+                    min="0"
+                    value={v.stock}
+                    onChange={(e) => setVar(v.key, { stock: e.target.value })}
+                    placeholder="0"
+                  />
+                )}
               </div>
               <div className="grid gap-1.5">
                 <Label className="text-xs">Stock mínimo</Label>
@@ -309,16 +321,28 @@ export function ProductoForm({
                 />
               </div>
               <div className="grid gap-1.5">
-                <Label className="text-xs">Costo promedio</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={v.costoPromedio}
-                  onChange={(e) =>
-                    setVar(v.key, { costoPromedio: e.target.value })
-                  }
-                />
+                <Label className="text-xs">
+                  {v.id ? "Costo promedio" : "Costo inicial"}
+                </Label>
+                {v.id ? (
+                  <>
+                    <Input value={v.costoPromedio} disabled />
+                    <p className="text-[11px] text-muted-foreground">
+                      Se ajusta desde Movimientos.
+                    </p>
+                  </>
+                ) : (
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={v.costoPromedio}
+                    onChange={(e) =>
+                      setVar(v.key, { costoPromedio: e.target.value })
+                    }
+                    placeholder="0"
+                  />
+                )}
               </div>
             </div>
             {variantes.length > 1 ? (

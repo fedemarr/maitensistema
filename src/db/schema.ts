@@ -43,7 +43,7 @@ export const tipoCliente = pgEnum("tipo_cliente", [
   "particular",
 ]);
 
-/** Los 8 tipos de movimiento del negocio (spec de Lautaro). */
+/** Los 8 tipos de movimiento del negocio (spec de Lautaro) + ajuste de stock. */
 export const tipoMovimiento = pgEnum("tipo_movimiento", [
   "ingreso", // compra a proveedor / alta de stock
   "venta",
@@ -53,6 +53,7 @@ export const tipoMovimiento = pgEnum("tipo_movimiento", [
   "regalo",
   "rotura", // defectuoso / baja
   "devolucion_consignacion",
+  "ajuste", // fija el stock a un valor contado / corrige (requiere notas)
 ]);
 
 /* ── Perfiles (espejo de auth.users) ───────────────────────── */
@@ -141,6 +142,15 @@ export const proveedores = pgTable("proveedores", {
 
 /* ── Movimientos ───────────────────────────────────────────── */
 
+/** Medios de pago (Efectivo, Transferencia, Mercado Pago, Crédito…). */
+export const mediosPago = pgTable("medios_pago", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  nombre: text("nombre").notNull().unique(),
+  esCredito: boolean("es_credito").notNull().default(false),
+  activo: boolean("activo").notNull().default(true),
+  ...timestamps,
+});
+
 export const movimientos = pgTable("movimientos", {
   id: uuid("id").primaryKey().defaultRandom(),
   tipo: tipoMovimiento("tipo").notNull(),
@@ -149,6 +159,9 @@ export const movimientos = pgTable("movimientos", {
     onDelete: "set null",
   }),
   proveedorId: uuid("proveedor_id").references(() => proveedores.id, {
+    onDelete: "set null",
+  }),
+  medioPagoId: uuid("medio_pago_id").references(() => mediosPago.id, {
     onDelete: "set null",
   }),
   /** Total en pesos. Puede ser 0 para regalo / presentación / rotura. */
@@ -175,6 +188,50 @@ export const movimientoItems = pgTable("movimiento_items", {
   costoUnit: numeric("costo_unit", { precision: 12, scale: 2 })
     .notNull()
     .default("0"),
+});
+
+/* ── Cuentas corrientes y consignaciones (Fase 2) ──────────── */
+
+export const ccEntidadTipo = pgEnum("cc_entidad_tipo", ["cliente", "proveedor"]);
+
+/** Asientos de cuenta corriente de clientes y proveedores. */
+export const ccMovimientos = pgTable("cc_movimientos", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  entidadTipo: ccEntidadTipo("entidad_tipo").notNull(),
+  entidadId: uuid("entidad_id").notNull(),
+  fecha: date("fecha").notNull().defaultNow(),
+  debe: numeric("debe", { precision: 12, scale: 2 }).notNull().default("0"),
+  haber: numeric("haber", { precision: 12, scale: 2 }).notNull().default("0"),
+  concepto: text("concepto"),
+  movimientoId: uuid("movimiento_id").references(() => movimientos.id, {
+    onDelete: "set null",
+  }),
+  ...timestamps,
+});
+
+export const estadoConsignacion = pgEnum("estado_consignacion", [
+  "pendiente",
+  "vendido",
+  "devuelto",
+]);
+
+/** Consignación: mercadería entregada a un cliente que se cobra cuando vende. */
+export const consignaciones = pgTable("consignaciones", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  movimientoId: uuid("movimiento_id")
+    .notNull()
+    .references(() => movimientos.id, { onDelete: "cascade" }),
+  clienteId: uuid("cliente_id")
+    .notNull()
+    .references(() => clientes.id, { onDelete: "cascade" }),
+  fecha: date("fecha").notNull().defaultNow(),
+  venceEl: date("vence_el").notNull(),
+  estado: estadoConsignacion("estado").notNull().default("pendiente"),
+  cierreMovimientoId: uuid("cierre_movimiento_id").references(
+    () => movimientos.id,
+    { onDelete: "set null" },
+  ),
+  ...timestamps,
 });
 
 /* ── Auditoría ─────────────────────────────────────────────── */
@@ -220,6 +277,10 @@ export const movimientosRelations = relations(movimientos, ({ one, many }) => ({
     fields: [movimientos.proveedorId],
     references: [proveedores.id],
   }),
+  medioPago: one(mediosPago, {
+    fields: [movimientos.medioPagoId],
+    references: [mediosPago.id],
+  }),
   creador: one(perfiles, {
     fields: [movimientos.creadoPor],
     references: [perfiles.id],
@@ -235,5 +296,30 @@ export const movimientoItemsRelations = relations(movimientoItems, ({ one }) => 
   variante: one(variantes, {
     fields: [movimientoItems.varianteId],
     references: [variantes.id],
+  }),
+}));
+
+export const ccMovimientosRelations = relations(
+  ccMovimientos,
+  ({ one }) => ({
+    movimiento: one(movimientos, {
+      fields: [ccMovimientos.movimientoId],
+      references: [movimientos.id],
+    }),
+  }),
+);
+
+export const consignacionesRelations = relations(consignaciones, ({ one }) => ({
+  movimiento: one(movimientos, {
+    fields: [consignaciones.movimientoId],
+    references: [movimientos.id],
+  }),
+  cliente: one(clientes, {
+    fields: [consignaciones.clienteId],
+    references: [clientes.id],
+  }),
+  cierreMovimiento: one(movimientos, {
+    fields: [consignaciones.cierreMovimientoId],
+    references: [movimientos.id],
   }),
 }));

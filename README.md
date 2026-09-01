@@ -115,7 +115,7 @@ Estado por módulo:
 - ✅ **Rubros** — `/config/rubros`
 - ✅ **Clientes** — `/clientes`
 - ✅ **Proveedores** — `/proveedores`
-- ⏳ Movimientos (motor de stock)
+- ✅ **Movimientos (motor de stock)** — `/movimientos`
 - ⏳ Panel de stock
 - ⏳ Ficha de producto (historial/resumen)
 - ⏳ Cuentas corrientes

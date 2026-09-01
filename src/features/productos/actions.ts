@@ -1,10 +1,10 @@
 "use server";
 
-import { and, eq, inArray, notInArray } from "drizzle-orm";
+import { and, eq, inArray, notInArray, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 import { db } from "@/db";
-import { productos, variantes } from "@/db/schema";
+import { movimientoItems, movimientos, productos, variantes } from "@/db/schema";
 import { registrarAuditoria } from "@/lib/audit";
 import { requireRole } from "@/lib/auth";
 import { contarMovimientosDeVariante, skuEnUso } from "./queries";
@@ -87,21 +87,68 @@ export async function guardarProducto(
       }
     }
 
+    // Si alguna variante nueva trae stock inicial, creamos un movimiento
+    // `ajuste` que lo registra (invariantes: solo movimientos cambian stock).
+    const variantesNuevas = data.variantes.filter((v) => !v.id && v.stock > 0);
+    let ajusteInicialId: string | null = null;
+    if (variantesNuevas.length > 0) {
+      const [adj] = await tx
+        .insert(movimientos)
+        .values({
+          tipo: "ajuste",
+          fecha: new Date().toISOString().slice(0, 10),
+          total: "0",
+          notas: "Carga inicial de stock",
+          creadoPor: user.id,
+        })
+        .returning({ id: movimientos.id });
+      ajusteInicialId = adj.id;
+    }
+
     for (const v of data.variantes) {
-      const values = {
-        productoId: pid,
-        nombre: v.nombre,
-        presentacion: v.presentacion,
-        fragancia: v.fragancia,
-        stock: v.stock,
-        stockMin: v.stockMin,
-        costoPromedio: String(v.costoPromedio),
-        activo: true,
-      };
       if (v.id) {
-        await tx.update(variantes).set(values).where(eq(variantes.id, v.id));
+        // Variante existente: stock y costo son solo lectura (se ajustan en Movimientos).
+        await tx
+          .update(variantes)
+          .set({
+            productoId: pid,
+            nombre: v.nombre,
+            presentacion: v.presentacion,
+            fragancia: v.fragancia,
+            stockMin: v.stockMin,
+            activo: true,
+          })
+          .where(eq(variantes.id, v.id));
       } else {
-        await tx.insert(variantes).values(values);
+        // Variante nueva: toma un costo inicial; el stock inicial se registra
+        // como un movimiento `ajuste` en la misma transacción.
+        const [row] = await tx
+          .insert(variantes)
+          .values({
+            productoId: pid,
+            nombre: v.nombre,
+            presentacion: v.presentacion,
+            fragancia: v.fragancia,
+            stock: 0,
+            stockMin: v.stockMin,
+            costoPromedio: String(v.costoPromedio),
+            activo: true,
+          })
+          .returning({ id: variantes.id });
+
+        if (v.stock > 0 && ajusteInicialId) {
+          await tx.insert(movimientoItems).values({
+            movimientoId: ajusteInicialId,
+            varianteId: row.id,
+            cantidad: v.stock,
+            precioUnit: "0",
+            costoUnit: "0",
+          });
+          await tx
+            .update(variantes)
+            .set({ stock: sql`${variantes.stock} + ${v.stock}` })
+            .where(eq(variantes.id, row.id));
+        }
       }
     }
 
@@ -118,6 +165,8 @@ export async function guardarProducto(
 
   revalidatePath("/productos");
   revalidatePath(`/productos/${productoId}`);
+  revalidatePath("/movimientos");
+  revalidatePath("/stock");
   return { ok: true, id: productoId };
 }
 
