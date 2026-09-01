@@ -9,6 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { getTerceroSaldo } from "@/features/cc/queries";
 import { getProveedor } from "@/features/proveedores/queries";
 import { puedeEscribir, requireUser } from "@/lib/auth";
 import { fmtMoney } from "@/lib/format";
@@ -24,6 +25,7 @@ export default async function FichaProveedorPage({
   const user = await requireUser();
   const proveedor = await getProveedor(id);
   if (!proveedor) notFound();
+  const saldo = await getTerceroSaldo("proveedor", id);
 
   const editable = puedeEscribir(user.rol);
 
@@ -67,11 +69,17 @@ export default async function FichaProveedorPage({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-semibold tabular-nums">
-              {fmtMoney(0)}
+            <p
+              className={`text-2xl font-semibold tabular-nums ${
+                saldo < 0 ? "text-destructive" : ""
+              }`}
+            >
+              {fmtMoney(saldo)}
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
-              Se completa en el módulo Cuentas Corrientes.
+              <Link href={`/cc-proveedores/${id}`} className="underline">
+                Ver cuenta corriente
+              </Link>
             </p>
           </CardContent>
         </Card>

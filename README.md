@@ -118,7 +118,7 @@ Estado por módulo:
 - ✅ **Movimientos (motor de stock)** — `/movimientos`
 - ✅ **Panel de stock** — `/stock`
 - ✅ **Ficha de producto (historial/resumen)** — `/productos/[id]`
-- ⏳ Cuentas corrientes
+- ✅ **Cuentas corrientes** — `/cc-clientes`, `/cc-proveedores`
 - ⏳ Reporte económico
 - ⏳ Consignaciones
 - ⏳ Contabilidad (diseño pendiente de revisión)

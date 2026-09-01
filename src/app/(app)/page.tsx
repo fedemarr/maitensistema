@@ -12,10 +12,9 @@ import { listStock } from "@/features/stock/queries";
 import { fmtNumber } from "@/lib/format";
 
 const PROXIMO = [
-  "Ficha de producto con historial/resumen",
   "Reporte económico mensual",
-  "Cuentas corrientes",
   "Consignaciones",
+  "Contabilidad (diseño)",
 ];
 
 export default async function DashboardPage() {
