@@ -116,7 +116,7 @@ Estado por módulo:
 - ✅ **Clientes** — `/clientes`
 - ✅ **Proveedores** — `/proveedores`
 - ✅ **Movimientos (motor de stock)** — `/movimientos`
-- ⏳ Panel de stock
+- ✅ **Panel de stock** — `/stock`
 - ⏳ Ficha de producto (historial/resumen)
 - ⏳ Cuentas corrientes
 - ⏳ Reporte económico
