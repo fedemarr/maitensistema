@@ -30,7 +30,53 @@ dominio. Es la fuente de verdad funcional.
 
 ---
 
-## 2. Convenciones (obligatorias)
+## 2. Prioridad número uno: el stock tiene que andar perfecto
+
+**Antes que la contabilidad, los reportes o cualquier pantalla linda, lo que
+tiene que quedar sólido y confiable es el control de stock.** Es la razón de
+ser del sistema: saber en todo momento cuántas unidades hay de cada variante,
+que ese número no mienta nunca, y que cada cambio quede explicado por un
+movimiento.
+
+### Invariantes de stock (NO se pueden violar)
+
+1. **Fuente de verdad única:** `variantes.stock` (entero). No hay stock
+   guardado en ningún otro lado ni "cacheado".
+2. **Solo los movimientos cambian el stock.** Ninguna otra pantalla escribe
+   `variantes.stock` directamente. En cuanto exista el módulo de Movimientos
+   (D), los campos de stock y costo del formulario de Productos pasan a ser
+   **solo lectura** (se editan cargando un movimiento de ajuste, ver D).
+3. **Toda escritura de stock es transaccional:** el movimiento, sus ítems y el
+   delta sobre cada `variantes.stock` se insertan/actualizan en la **misma
+   transacción** de Drizzle. Si algo falla, no se movió nada.
+4. **Nunca stock negativo.** Antes de restar en una salida, validá que haya
+   saldo suficiente por variante; si no, `{ ok: false, error }` y no se
+   guarda nada.
+5. **Todo es reversible.** Eliminar un movimiento (solo `admin`) revierte
+   exactamente su efecto sobre el stock (y sus efectos en CC / consignaciones),
+   también en una transacción.
+6. **Consistencia auditable:** el stock actual de una variante tiene que ser
+   igual a `stock_inicial_por_ajustes + Σ(ingresos) − Σ(salidas)`. Tiene que
+   existir una forma de verificarlo (ver "Panel de stock", D2).
+7. **Concurrencia:** al aplicar el delta usá una actualización atómica
+   (`set stock = stock + :delta`), no "leo, sumo en JS, escribo".
+
+### Orden de prioridad de los módulos
+
+- **P0 — el stock anda bien:** A (Rubros, es dependencia corta) → B y C
+  (Clientes/Proveedores, los necesita Movimientos para el "tercero") → **D
+  (Movimientos, el motor de stock)** → **D2 (Panel de stock)** → E (historial
+  y resumen en la ficha de producto).
+- **P1 — cuando P0 está cerrado y probado:** F (Cuentas corrientes) → G
+  (Reporte económico) → H (Consignaciones).
+- **P2 — con diseño previo a revisar:** I (Contabilidad).
+
+No arranques P1 hasta que Federico haya probado P0 de punta a punta y Claude
+haya revisado el código de D y D2.
+
+---
+
+## 3. Convenciones (obligatorias)
 
 Copiá la estructura de Productos. Para cada módulo `X`:
 
@@ -95,7 +141,7 @@ src/app/(app)/<x>/
 
 ---
 
-## 3. Setup que se asume
+## 4. Setup que se asume
 
 Antes de arrancar, estas cosas ya están hechas por Federico:
 
@@ -111,7 +157,10 @@ Comandos de verificación: `pnpm typecheck && pnpm lint && pnpm build`.
 
 ---
 
-## 4. Módulos a construir (en este orden)
+## 5. Módulos a construir
+
+Orden y prioridad: ver sección 2. Resumen: **A → B → C → D → D2 → E** es la
+tanda P0 (que el stock ande bien). Recién después F, G, H, y por último I.
 
 ### A. Rubros — página de configuración  ·  chico
 
@@ -155,7 +204,11 @@ Rutas `/proveedores/*`. Habilitá "Proveedores" en el shell.
 
 ---
 
-### D. Movimientos — los 8 tipos  ·  GRANDE, es el corazón
+### D. Movimientos — el motor de stock  ·  GRANDE, es el corazón de P0
+
+Este módulo es el que hace que "el stock ande bien". Releé la sección 2
+(invariantes) antes de codear. Cada movimiento es un hecho inmutable que
+explica un cambio de stock.
 
 Tablas `movimientos` y `movimiento_items` ya existen. **Agregá** la tabla
 `medios_pago`:
@@ -183,17 +236,34 @@ Crédito (`es_credito = true`). Agregá `medio_pago_id uuid` (nullable) a
 | `rotura` | **−** resta | no | 0 | — | — |
 | `devolucion_consignacion` | **+** suma | no | 0 | cliente (req.) | cierra una consignación (ver H) |
 
-Reglas:
+**Agregá un 9º tipo `ajuste`** al enum `tipo_movimiento` (no estaba en el
+handoff; lo necesitás para el stock): fija el stock de una o varias variantes a
+un valor contado, o lo corrige. El ítem lleva la cantidad **objetivo** (o el
+delta con signo — elegí uno y documentalo); el efecto sobre el stock es llevar
+`variantes.stock` a ese número. Requiere `notas` (motivo: recuento, carga
+inicial, corrección). Sin tercero, sin medio de pago, `total` 0. Es la única
+vía para cargar el stock inicial y para reconciliar recuentos físicos.
+
+Reglas (además de los invariantes de la sección 2):
 
 - Toda la creación de un movimiento va en **una transacción**: inserta
   `movimientos` + `movimiento_items` + aplica el delta de stock a cada
-  `variantes.stock` + efectos extra. Si algo falla, rollback.
+  `variantes.stock` con `set stock = stock ± :cant` (atómico) + efectos extra.
+  Si algo falla, rollback.
 - **Validá stock** antes de restar en salidas: no permitas dejar stock negativo
-  (devolvé `{ ok: false, error }`).
+  (devolvé `{ ok: false, error }`). Revalidá dentro de la transacción, no solo
+  con el número que vino del cliente.
 - Movimientos **inmutables** tras crearse. "Editar" = eliminar + recrear.
   `eliminarMovimiento` (solo `admin`) revierte stock y efectos (CC,
   consignación) dentro de una transacción.
 - `fecha` la elige el usuario (default hoy).
+- Una variante inactiva o un producto inactivo no admite nuevos movimientos
+  (salvo `ajuste` para corregir).
+- **Tocá el formulario de Productos** (`producto-form.tsx`): al existir este
+  módulo, los inputs de `stock` y `costoPromedio` de las variantes pasan a ser
+  **solo lectura** con una nota "se ajusta desde Movimientos". El alta de una
+  variante nueva puede seguir tomando un stock inicial, pero registralo creando
+  un movimiento `ajuste` en la misma operación (no un `UPDATE` suelto).
 
 **UI:**
 
@@ -208,10 +278,38 @@ Reglas:
 - `/movimientos/[id]`: detalle read-only + botón Eliminar (admin).
 - Habilitá "Movimientos" en el shell.
 
-**Done:** puedo cargar un ingreso (sube stock), una venta con crédito (baja
-stock + deja saldo en CC cliente), una consignación (baja stock + crea
-consignación pendiente), y un regalo/rotura (baja stock, total 0). Eliminar
-cualquiera revierte todo. Nunca queda stock negativo.
+**Done:** puedo cargar un ajuste (fija stock inicial), un ingreso (sube stock),
+una venta con crédito (baja stock + deja saldo en CC cliente), una consignación
+(baja stock + crea consignación pendiente), y un regalo/rotura (baja stock,
+total 0). Eliminar cualquiera revierte todo, exacto. Nunca queda stock
+negativo. El stock del formulario de Productos quedó solo lectura.
+
+---
+
+### D2. Panel de stock  ·  medio — cierra P0
+
+La pantalla que da la foto del stock de todo el negocio de un vistazo.
+
+- Ruta `/stock`: tabla de **todas las variantes activas** (producto, variante,
+  rubro, stock, mínimo, estado, valor a costo = stock × costoPromedio).
+  Búsqueda y filtro por rubro. Orden por defecto: las que están bajo el mínimo
+  primero.
+- Estado por fila: `OK` / `Bajo mínimo` / `Sin stock`, con color (usá el mismo
+  criterio que la ficha de producto).
+- Totales arriba (tiles, patrón de la ficha): nº de variantes, cuántas bajo
+  mínimo, cuántas sin stock, valor total del inventario a costo.
+- Cada fila linkea a la ficha del producto.
+- **Chequeo de consistencia:** una acción `verificarStock()` (solo `admin`)
+  que recalcula, por variante, `Σ ingresos − Σ salidas` (± ajustes) desde
+  `movimiento_items` y lo compara con `variantes.stock`. Lista las diferencias
+  (no las corrige sola). Es la red de seguridad del invariante 6.
+- En `/` (dashboard), mostrá el bloque "Stock crítico": las variantes bajo
+  mínimo o sin stock (reemplaza el texto placeholder actual).
+- Habilitá un ítem "Stock" en el shell, sección "Operación".
+
+**Done:** entro a `/stock` y en una pantalla sé qué falta comprar/producir;
+`verificarStock()` no encuentra diferencias después de cargar varios
+movimientos; el dashboard muestra los faltantes.
 
 ---
 
@@ -310,7 +408,7 @@ seed.
 
 ---
 
-## 5. Entregable
+## 6. Entregable
 
 - Rama `fase-2` (o una rama por módulo si preferís PRs chicos).
 - Un commit por módulo, verde (`typecheck` + `lint` + `build`).
@@ -322,12 +420,18 @@ seed.
 - Al terminar (o al trabarte), dejá un `docs/fase-2-estado.md` breve: qué
   quedó hecho, qué falta, decisiones que tomaste y dudas abiertas.
 
-## 6. Revisión
+## 7. Revisión
 
 - **Federico** levanta la app (`pnpm dev`) y prueba cada módulo contra su
   sección "Done".
 - **Claude** revisa el código: que siga los patrones, que las transacciones y
   la reversión de stock estén bien, que no haya `any` ni RLS sin cubrir, que
   los `numeric` se manejen como corresponde.
-- Los módulos D (Movimientos) e I (Contabilidad) son los críticos: ahí va el
-  grueso de la revisión.
+- **Puerta de aceptación de P0:** el stock. No se pasa a P1 hasta que, con
+  datos de prueba cargados (ajustes, ingresos, ventas, consignaciones,
+  roturas, devoluciones y algún borrado de movimiento), se cumpla que:
+  ningún `variantes.stock` quedó negativo; `verificarStock()` no reporta
+  diferencias; borrar un movimiento deja el stock igual que antes de crearlo;
+  y el panel `/stock` y el dashboard reflejan la realidad.
+- Los módulos **D + D2** (motor de stock) e **I** (Contabilidad) son los
+  críticos: ahí va el grueso de la revisión de Claude.
