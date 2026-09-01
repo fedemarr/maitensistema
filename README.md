@@ -103,11 +103,19 @@ docs/                 # revisión inicial + prototipo legacy
 
 ## Estado
 
-**Fase 2 — en curso.** Auth, sesión, protección de rutas, shell y módulo
-Productos listos (Fase 1). En Fase 2 se construyeron Rubros, Clientes,
-Proveedores, Movimientos (motor de stock), Panel de stock, Ficha de producto,
-Cuentas corrientes, Reportes, Consignaciones y Contabilidad (partida doble
-automática). Ver [`docs/fase-2-estado.md`](docs/fase-2-estado.md) para el detalle.
+**Deployado:** <https://maitensistema.vercel.app> — cada push a `main` deploya
+a producción.
+
+**Fase 2 — completa.** Sobre la base de la Fase 1 (auth, sesión, shell, módulo
+Productos) se construyeron Rubros, Clientes, Proveedores, Movimientos (motor de
+stock), Panel de stock, Ficha de producto, Cuentas corrientes, Reportes,
+Consignaciones y Contabilidad (partida doble automática).
+Ver [`docs/fase-2-estado.md`](docs/fase-2-estado.md) para el detalle.
+
+**Fase 3 — planificada.** Producción / órdenes de fabricación, insumos y
+recetas (cierre del circuito de stock), luego Tiendanube, gestión de usuarios,
+IA de análisis y AFIP. Encargo en
+[`docs/fase-3-opencode.md`](docs/fase-3-opencode.md).
 
 Estado por módulo:
 
