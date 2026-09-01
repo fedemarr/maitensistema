@@ -20,7 +20,7 @@ const NAV: { seccion: string; items: NavItem[] }[] = [
     seccion: "Registros",
     items: [
       { href: "/productos", label: "Productos", ready: true },
-      { href: "/clientes", label: "Clientes" },
+      { href: "/clientes", label: "Clientes", ready: true },
       { href: "/proveedores", label: "Proveedores" },
     ],
   },
