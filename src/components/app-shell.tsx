@@ -14,7 +14,7 @@ const NAV: { seccion: string; items: NavItem[] }[] = [
       { href: "/", label: "Inicio", ready: true },
       { href: "/movimientos", label: "Movimientos", ready: true },
       { href: "/stock", label: "Stock", ready: true },
-      { href: "/consignaciones", label: "Consignaciones" },
+      { href: "/consignaciones", label: "Consignaciones", ready: true },
     ],
   },
   {

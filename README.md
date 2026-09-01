@@ -120,7 +120,7 @@ Estado por módulo:
 - ✅ **Ficha de producto (historial/resumen)** — `/productos/[id]`
 - ✅ **Cuentas corrientes** — `/cc-clientes`, `/cc-proveedores`
 - ✅ **Reporte económico** — `/reportes`
-- ⏳ Consignaciones
+- ✅ **Consignaciones** — `/consignaciones`
 - ⏳ Contabilidad (diseño pendiente de revisión)
 
 La lista completa y decisiones tomadas está en
