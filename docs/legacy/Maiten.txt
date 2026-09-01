@@ -2,4 +2,4 @@ Maiten
 
 https://supabase.com/dashboard/project/zcowjjrsjiuzrlphvzyx/settings/api-keys  
 https://zcowjjrsjiuzrlphvzyx.supabase.co
-sb_publishable_fLVAMbB46yhNieTqsv8rvg_OHsBFCoQ
+sb_publishable_REDACTADO

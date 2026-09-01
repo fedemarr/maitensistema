@@ -220,7 +220,7 @@ El resto del plan de cuentas es genérico y aplica a cualquier negocio.
 
 ### Decisión 7 — Login sin autenticación real
 
-Los usuarios están **hardcodeados en el JS** del HTML. Hoy hay uno: `admin / maiten2026`. Antes de producción hay que migrar a **Supabase Auth** con email + password real. Es prioridad alta.
+Los usuarios están **hardcodeados en el JS** del HTML. Hoy hay uno: `admin / CREDENCIAL_REDACTADA`. Antes de producción hay que migrar a **Supabase Auth** con email + password real. Es prioridad alta.
 
 ### Decisión 8 — RLS de Supabase permisivo por ahora
 
@@ -313,7 +313,7 @@ Te doy acceso al proyecto de Supabase (`maiten-sistema`) como colaborador. Neces
 
 Datos del proyecto:
 - URL: `https://zcowjjrsjiuzrlphvzyx.supabase.co`
-- Publishable key: `sb_publishable_fLVAMbB46yhNieTqsv8rvg_OHsBFCoQ`
+- Publishable key: `sb_publishable_REDACTADO`
 - (La DB password la tengo yo, no la comparto acá; te la paso por canal seguro).
 
 ### Cuarto: elegí por dónde empezar
