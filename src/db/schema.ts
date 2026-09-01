@@ -1,6 +1,7 @@
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import {
   boolean,
+  check,
   date,
   integer,
   numeric,
@@ -113,7 +114,10 @@ export const variantes = pgTable("variantes", {
     .default("0"),
   activo: boolean("activo").notNull().default(true),
   ...timestamps,
-});
+}, (t) => [
+  // Invariante de stock: garantía a nivel base, además del chequeo en la app.
+  check("variantes_stock_no_negativo", sql`${t.stock} >= 0`),
+]);
 
 /* ── Terceros ──────────────────────────────────────────────── */
 

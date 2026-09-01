@@ -1,0 +1,1 @@
+ALTER TABLE "variantes" ADD CONSTRAINT "variantes_stock_no_negativo" CHECK ("variantes"."stock" >= 0);

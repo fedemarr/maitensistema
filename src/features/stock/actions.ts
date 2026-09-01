@@ -67,7 +67,7 @@ export async function verificarStock() {
     actorId: user.id,
     accion: "crear",
     entidad: "verificacion-stock",
-    datos: JSON.stringify({ revisados: grupos.length, diferencias: diferencias.length }),
+    datos: { revisados: grupos.length, diferencias: diferencias.length },
   });
 
   return {

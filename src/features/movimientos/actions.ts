@@ -313,13 +313,28 @@ export async function eliminarMovimiento(id: string): Promise<ActionResult> {
   });
   if (!mov) return { ok: false, error: "No encontré el movimiento." };
 
-  await db.transaction(async (tx) => {
+  const result = await db.transaction(async (tx) => {
     const regla = reglaDe(mov.tipo as MovimientoInput["tipo"]);
 
     // Revertir stock: para todos los ítems, aplicamos el delta inverso (atómico).
     // Para `ajuste`, cantidad guarda el delta con signo, así que −delta restaura.
     for (const item of mov.items) {
-      const delta = regla.signo === "ajuste" ? item.cantidad : regla.signo * item.cantidad;
+      const delta =
+        regla.signo === "ajuste" ? item.cantidad : regla.signo * item.cantidad;
+
+      // Invariante 4: revertir no puede dejar stock negativo (ej: borrar un
+      // ingreso cuya mercadería ya se vendió). Chequeo explícito + CHECK en la BD.
+      const v = await tx.query.variantes.findFirst({
+        where: eq(variantes.id, item.varianteId),
+        columns: { stock: true, nombre: true },
+      });
+      if (v && v.stock - delta < 0) {
+        return {
+          ok: false as const,
+          error: `No se puede eliminar: dejaría la variante "${v.nombre}" con stock negativo (${v.stock} − ${delta}). Cargá primero los movimientos que faltan o hacé un ajuste.`,
+        };
+      }
+
       await tx
         .update(variantes)
         .set({ stock: sql`${variantes.stock} - ${delta}` })
@@ -331,7 +346,10 @@ export async function eliminarMovimiento(id: string): Promise<ActionResult> {
     await tx.delete(consignaciones).where(eq(consignaciones.movimientoId, id));
 
     await tx.delete(movimientos).where(eq(movimientos.id, id));
+    return { ok: true as const };
   });
+
+  if (!result.ok) return result;
 
   await registrarAuditoria({
     actorId: user.id,
