@@ -7,8 +7,7 @@ import {
 } from "@/components/ui/card";
 
 const PROXIMO = [
-  "Migrar el schema a Supabase (pnpm db:generate && pnpm db:migrate)",
-  "Módulo Productos + variantes + fotos en Storage",
+  "✅ Rubros — /config/rubros (crear + activar/desactivar)",
   "Módulo Clientes y Proveedores",
   "Módulo Movimientos (los 8 tipos)",
   "Ficha de producto con KPI de stock",

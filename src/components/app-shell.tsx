@@ -36,7 +36,7 @@ const NAV: { seccion: string; items: NavItem[] }[] = [
   {
     seccion: "Configuración",
     items: [
-      { href: "/config/rubros", label: "Rubros" },
+      { href: "/config/rubros", label: "Rubros", ready: true },
       { href: "/config/usuarios", label: "Usuarios" },
     ],
   },

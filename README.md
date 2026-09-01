@@ -103,5 +103,25 @@ docs/                 # revisión inicial + prototipo legacy
 
 ## Estado
 
-**Fase 1 — esqueleto.** Auth, sesión, protección de rutas y shell listos.
-Próximo: módulos Productos, Clientes/Proveedores y Movimientos (ver `Inicio`).
+**Fase 2 — en curso.** Auth, sesión, protección de rutas, shell y módulo
+Productos listos (Fase 1). En Fase 2 se construyen Rubros, Clientes,
+Proveedores, Movimientos (motor de stock), Panel de stock, Ficha de producto,
+Cuentas corrientes, Reportes, Consignaciones y Contabilidad. Ver
+[`docs/fase-2-estado.md`](docs/fase-2-estado.md) para el detalle.
+
+Estado por módulo:
+
+- ✅ **Productos** (Fase 1)
+- ✅ **Rubros** — `/config/rubros`
+- ⏳ Clientes — en curso
+- ⏳ Proveedores
+- ⏳ Movimientos (motor de stock)
+- ⏳ Panel de stock
+- ⏳ Ficha de producto (historial/resumen)
+- ⏳ Cuentas corrientes
+- ⏳ Reporte económico
+- ⏳ Consignaciones
+- ⏳ Contabilidad (diseño pendiente de revisión)
+
+La lista completa y decisiones tomadas está en
+[`docs/fase-2-estado.md`](docs/fase-2-estado.md) y en la pantalla `Inicio`.
