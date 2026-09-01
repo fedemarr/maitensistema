@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import { db } from "@/db";
 import { ccMovimientos, mediosPago } from "@/db/schema";
+import { generarAsientoPago } from "@/features/contabilidad/lib/asientos";
 import { registrarAuditoria } from "@/lib/audit";
 import { requireRole } from "@/lib/auth";
 
@@ -58,13 +59,25 @@ export async function registrarPago(input: PagoInput): Promise<ActionResult> {
     : "Pago a proveedor";
   const texto = concepto ?? `${textoBase}${textoMedio}`;
 
-  await db.insert(ccMovimientos).values({
-    entidadTipo,
-    entidadId,
-    fecha,
-    debe: esCliente ? "0" : String(monto),
-    haber: esCliente ? String(monto) : "0",
-    concepto: texto,
+  await db.transaction(async (tx) => {
+    await tx.insert(ccMovimientos).values({
+      entidadTipo,
+      entidadId,
+      fecha,
+      debe: esCliente ? "0" : String(monto),
+      haber: esCliente ? String(monto) : "0",
+      concepto: texto,
+    });
+
+    // Contabilidad (módulo I): asiento del pago en la misma transacción.
+    await generarAsientoPago(tx, {
+      fecha,
+      esCliente,
+      monto,
+      medioPagoId,
+      descripcion: texto,
+      creadorId: user.id,
+    });
   });
 
   await registrarAuditoria({
@@ -78,5 +91,6 @@ export async function registrarPago(input: PagoInput): Promise<ActionResult> {
   const rutaBase = esCliente ? "/cc-clientes" : "/cc-proveedores";
   revalidatePath(rutaBase);
   revalidatePath(`${rutaBase}/${entidadId}`);
+  revalidatePath("/contabilidad");
   return { ok: true };
 }

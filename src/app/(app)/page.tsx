@@ -20,9 +20,10 @@ const HECHO = [
   "Cuentas corrientes — /cc-clientes, /cc-proveedores",
   "Reporte económico — /reportes",
   "Consignaciones — /consignaciones",
+  "Contabilidad — /contabilidad (balance, resultados, asientos)",
 ];
 
-const PROXIMO = ["Contabilidad (diseño) — docs/contabilidad-diseno.md"];
+const PROXIMO: string[] = [];
 
 export default async function DashboardPage() {
   const filas = await listStock();
@@ -33,7 +34,7 @@ export default async function DashboardPage() {
       <div>
         <h1 className="text-2xl font-semibold">Inicio</h1>
         <p className="text-sm text-muted-foreground">
-          Panel de stock y módulos en construcción (Fase 2).
+          Panel de stock y módulos de la Fase 2.
         </p>
       </div>
 
@@ -113,19 +114,21 @@ export default async function DashboardPage() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Próximos pasos</CardTitle>
-          <CardDescription>Falta revisar en la Fase 2.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ol className="list-decimal space-y-1.5 pl-5 text-sm">
-            {PROXIMO.map((p) => (
-              <li key={p}>{p}</li>
-            ))}
-          </ol>
-        </CardContent>
-      </Card>
+      {PROXIMO.length > 0 ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Próximos pasos</CardTitle>
+            <CardDescription>Falta revisar en la Fase 2.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ol className="list-decimal space-y-1.5 pl-5 text-sm">
+              {PROXIMO.map((p) => (
+                <li key={p}>{p}</li>
+              ))}
+            </ol>
+          </CardContent>
+        </Card>
+      ) : null}
     </div>
   );
 }

@@ -15,6 +15,7 @@ import {
 } from "@/db/schema";
 import { registrarAuditoria } from "@/lib/audit";
 import { requireRole } from "@/lib/auth";
+import { generarAsientoMovimiento } from "@/features/contabilidad/lib/asientos";
 
 export type ActionResult =
   | { ok: true }
@@ -101,6 +102,7 @@ export async function marcarVendida(input: {
             medioPagoId,
             total: String(total),
             notas: `Venta de consignación (${cons.movimientoId})`,
+            consignacionId: cons.id,
             creadoPor: user.id,
           })
           .returning({ id: movimientos.id });
@@ -164,6 +166,9 @@ export async function marcarVendida(input: {
             });
           }
         }
+
+        // Contabilidad (módulo I): asiento de la venta (consignación vendida).
+        await generarAsientoMovimiento(tx, venta.id, user.id);
       }
 
       await tx
@@ -186,6 +191,7 @@ export async function marcarVendida(input: {
   revalidatePath("/consignaciones");
   revalidatePath("/movimientos");
   revalidatePath("/stock");
+  revalidatePath("/contabilidad");
   return { ok: true };
 }
 
@@ -225,13 +231,16 @@ export async function registrarDevolucion(input: { id: string }): Promise<Action
           varianteId: it.varianteId,
           cantidad: it.cantidad,
           precioUnit: String(it.precioUnit),
-          costoUnit: "0",
+          costoUnit: String(it.variante?.costoPromedio ?? 0),
         });
         await tx
           .update(variantes)
           .set({ stock: sql`${variantes.stock} + ${it.cantidad}` })
           .where(eq(variantes.id, it.varianteId));
       }
+
+      // Contabilidad (módulo I): asiento de la devolución (reingreso a Mercadería).
+      await generarAsientoMovimiento(tx, mov.id, user.id);
 
       await tx
         .update(consignaciones)
@@ -253,5 +262,6 @@ export async function registrarDevolucion(input: { id: string }): Promise<Action
   revalidatePath("/consignaciones");
   revalidatePath("/movimientos");
   revalidatePath("/stock");
+  revalidatePath("/contabilidad");
   return { ok: true };
 }

@@ -147,6 +147,10 @@ export const mediosPago = pgTable("medios_pago", {
   id: uuid("id").primaryKey().defaultRandom(),
   nombre: text("nombre").notNull().unique(),
   esCredito: boolean("es_credito").notNull().default(false),
+  /** Cuenta contable que se debita/credita (Caja, Banco…). Null si es crédito. */
+  cuentaId: uuid("cuenta_id").references(() => planCuentas.id, {
+    onDelete: "set null",
+  }),
   activo: boolean("activo").notNull().default(true),
   ...timestamps,
 });
@@ -167,6 +171,12 @@ export const movimientos = pgTable("movimientos", {
   /** Total en pesos. Puede ser 0 para regalo / presentación / rotura. */
   total: numeric("total", { precision: 12, scale: 2 }).notNull().default("0"),
   notas: text("notas"),
+  /**
+   * Si la venta proviene de una consignación (módulo H), para contabilidad.
+   * Sin FK a consignaciones a propósito: evita el ciclo con `consignaciones`,
+   * que ya referencia a `movimientos` por `movimiento_id`.
+   */
+  consignacionId: uuid("consignacion_id"),
   creadoPor: uuid("creado_por").references(() => perfiles.id, {
     onDelete: "set null",
   }),
@@ -214,6 +224,64 @@ export const estadoConsignacion = pgEnum("estado_consignacion", [
   "vendido",
   "devuelto",
 ]);
+
+/* ── Contabilidad (Módulo I) ───────────────────────────────── */
+
+export const tipoCuenta = pgEnum("tipo_cuenta", [
+  "activo",
+  "pasivo",
+  "pn",
+  "rpos",
+  "rneg",
+]);
+
+/** Plan de cuentas: catálogo de cuentas contables. El seed viene en la migración. */
+export const planCuentas = pgTable("plan_cuentas", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  /** Código jerárquico, ej. "1.1.1". */
+  codigo: text("codigo").notNull().unique(),
+  nombre: text("nombre").notNull(),
+  rubro: text("rubro").notNull(),
+  tipo: tipoCuenta("tipo").notNull(),
+  activo: boolean("activo").notNull().default(true),
+  ...timestamps,
+});
+
+/**
+ * Asiento contable (partida doble). Los asientos automáticos derivan de un
+ * movimiento o de un pago de CC; los manuales no tienen `movimientoId`.
+ * `borrador` permite asientos sin confirmar; `confirmado` es definitivo.
+ */
+export const asientos = pgTable("asientos", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  fecha: date("fecha").notNull().defaultNow(),
+  descripcion: text("descripcion").notNull(),
+  /** Origen del asiento: "movimiento" | "cc-pago" | "manual". */
+  origen: text("origen").notNull(),
+  estado: text("estado").notNull().default("confirmado"),
+  movimientoId: uuid("movimiento_id").references(() => movimientos.id, {
+    onDelete: "cascade",
+  }),
+  creadoPor: uuid("creado_por").references(() => perfiles.id, {
+    onDelete: "set null",
+  }),
+  ...timestamps,
+});
+
+/** Líneas de un asiento: Σ debe = Σ haber por asiento confirmado. */
+export const asientoLineas = pgTable("asiento_lineas", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  asientoId: uuid("asiento_id")
+    .notNull()
+    .references(() => asientos.id, { onDelete: "cascade" }),
+  cuentaId: uuid("cuenta_id")
+    .notNull()
+    .references(() => planCuentas.id, { onDelete: "restrict" }),
+  debe: numeric("debe", { precision: 12, scale: 2 }).notNull().default("0"),
+  haber: numeric("haber", { precision: 12, scale: 2 }).notNull().default("0"),
+  concepto: text("concepto"),
+  ...timestamps,
+});
 
 /** Consignación: mercadería entregada a un cliente que se cobra cuando vende. */
 export const consignaciones = pgTable("consignaciones", {
@@ -286,6 +354,10 @@ export const movimientosRelations = relations(movimientos, ({ one, many }) => ({
     references: [perfiles.id],
   }),
   items: many(movimientoItems),
+  consignacionOrigen: one(consignaciones, {
+    fields: [movimientos.consignacionId],
+    references: [consignaciones.id],
+  }),
 }));
 
 export const movimientoItemsRelations = relations(movimientoItems, ({ one }) => ({
@@ -321,5 +393,28 @@ export const consignacionesRelations = relations(consignaciones, ({ one }) => ({
   cierreMovimiento: one(movimientos, {
     fields: [consignaciones.cierreMovimientoId],
     references: [movimientos.id],
+  }),
+}));
+
+export const asientosRelations = relations(asientos, ({ one, many }) => ({
+  movimiento: one(movimientos, {
+    fields: [asientos.movimientoId],
+    references: [movimientos.id],
+  }),
+  creador: one(perfiles, {
+    fields: [asientos.creadoPor],
+    references: [perfiles.id],
+  }),
+  lineas: many(asientoLineas),
+}));
+
+export const asientoLineasRelations = relations(asientoLineas, ({ one }) => ({
+  asiento: one(asientos, {
+    fields: [asientoLineas.asientoId],
+    references: [asientos.id],
+  }),
+  cuenta: one(planCuentas, {
+    fields: [asientoLineas.cuentaId],
+    references: [planCuentas.id],
   }),
 }));

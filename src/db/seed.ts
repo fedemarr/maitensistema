@@ -18,22 +18,45 @@ const client = postgres(process.env.DATABASE_URL, { prepare: false });
 const db = drizzle(client, { schema, casing: "snake_case" });
 
 async function main() {
-  const { rubros, productos, variantes, mediosPago } = schema;
+  const { rubros, productos, variantes, mediosPago, planCuentas } = schema;
 
   await db
     .insert(rubros)
     .values([{ nombre: "Capilar" }, { nombre: "Corporal" }])
     .onConflictDoNothing();
 
-  await db
-    .insert(mediosPago)
-    .values([
-      { nombre: "Efectivo", esCredito: false },
-      { nombre: "Transferencia", esCredito: false },
-      { nombre: "Mercado Pago", esCredito: false },
-      { nombre: "Crédito", esCredito: true },
-    ])
-    .onConflictDoNothing({ target: mediosPago.nombre });
+  const cuentaPorCodigo = async (codigo: string) =>
+    (
+      await db.query.planCuentas.findFirst({
+        where: eq(planCuentas.codigo, codigo),
+        columns: { id: true },
+      })
+    )?.id ?? null;
+
+  const cuentas = await Promise.all([
+    cuentaPorCodigo("1.1.1"),
+    cuentaPorCodigo("1.1.2"),
+  ]);
+  const [caja, banco] = cuentas;
+
+  const medios = [
+    { nombre: "Efectivo", esCredito: false, cuentaId: caja },
+    { nombre: "Transferencia", esCredito: false, cuentaId: banco },
+    { nombre: "Mercado Pago", esCredito: false, cuentaId: banco },
+    { nombre: "Crédito", esCredito: true, cuentaId: null },
+  ];
+
+  await Promise.all(
+    medios.map((m) =>
+      db
+        .insert(mediosPago)
+        .values(m)
+        .onConflictDoUpdate({
+          target: mediosPago.nombre,
+          set: { esCredito: m.esCredito, cuentaId: m.cuentaId },
+        }),
+    ),
+  );
 
   const capilar = await db.query.rubros.findFirst({
     where: eq(rubros.nombre, "Capilar"),

@@ -14,6 +14,7 @@ import {
 } from "@/db/schema";
 import { registrarAuditoria } from "@/lib/audit";
 import { requireRole } from "@/lib/auth";
+import { generarAsientoMovimiento } from "@/features/contabilidad/lib/asientos";
 import { movimientoInput, reglaDe, type MovimientoInput } from "./schema";
 
 export type ActionResult =
@@ -262,6 +263,9 @@ export async function crearMovimiento(
       });
     }
 
+    // Contabilidad (módulo I): asiento automático derivado del movimiento.
+    await generarAsientoMovimiento(tx, mov.id, user.id);
+
     return { ok: true as const, id: mov.id };
   });
 
@@ -280,6 +284,7 @@ export async function crearMovimiento(
   revalidatePath("/stock");
   revalidatePath("/productos");
   revalidatePath("/");
+  revalidatePath("/contabilidad");
   return { ok: true, id: result.id };
 }
 
@@ -339,5 +344,6 @@ export async function eliminarMovimiento(id: string): Promise<ActionResult> {
   revalidatePath("/stock");
   revalidatePath("/productos");
   revalidatePath("/");
+  revalidatePath("/contabilidad");
   return { ok: true, id };
 }

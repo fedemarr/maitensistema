@@ -50,11 +50,21 @@ Actualizado al cierre de la ejecución (rama `fase-2`).
   compensatorio para no descontar dos veces) y `registrarDevolucion()` (suma
   stock y cierra).
   - Commit `8332284`.
-- **I. Contabilidad** — **solo diseño** en `docs/contabilidad-diseno.md`
-  (tablas `plan_cuentas` / `asientos` / `asiento_lineas`, mapeo de cada tipo de
-  movimiento a asientos, armado de balance, seed del plan de cuentas).
-  **Pendiente de revisión** antes de codear.
-  - Commit `d8b3edc`.
+- **I. Contabilidad** — `/contabilidad` (partida doble automática): tablas
+  `plan_cuentas` / `asientos` / `asiento_lineas`, generador de asientos
+  integrado en `crearMovimiento`, pagos de CC y consignaciones, plan de cuentas,
+  balance de comprobación / balance general, estado de resultados mensual con
+  selector de mes, y diario (`/contabilidad/asientos/[id]`) con su detalle.
+  - El plan de cuentas (15 cuentas) se siembra en la migración `0003`; los
+    medios de pago mapean Caja/Banco vía `medios_pago.cuenta_id` (seed
+    actualizado).
+  - Desvíos respecto del diseño: una sola cuenta de ventas; eliminar un
+    movimiento borra sus asientos (`ON DELETE CASCADE`); cuenta separada
+    "Mercadería en consignación"; los `ajuste` **no** generan asiento; todo
+    asiento automático nace `confirmado`; `movimientos.consignacion_id` sin FK
+    (uuid plano) para evitar la circularidad TS. Ver `docs/contabilidad-diseno.md` §8.
+  - Migración `0003` (esquema + seed) ya aplicada en la DB de dev.
+  - Commits `d8b3edc` (diseño) y el commit final del Módulo I (implementación).
 
 ## Decisiones técnicas (invariantes del motor de stock)
 
@@ -90,11 +100,12 @@ Actualizado al cierre de la ejecución (rama `fase-2`).
 
 ## Dudas abiertas para la revisión con las dueñas
 
-- Validar con un contador el **plan de cuentas** propuesto (módulo I).
-- ¿Una sola cuenta de ventas o desglose por tipo?
-- Eliminar un movimiento: ¿contra-asiento o borrar asientos derivados?
-- ¿Cuenta separada "Mercadería en consignación" o control dentro de
-  "Mercadería"?
+- Validar con un contador el **plan de cuentas** implementado (códigos y rubros
+  son de referencia; la migración la ajusta). Las decisiones 2–4 de la lista
+  anterior ya se resolvieron en la implementación (ver `contabilidad-diseno.md`
+  §8).
+- ¿Asientos manuales en el futuro? Hoy `origen` ya los distingue (`manual`)
+  pero no hay pantalla para crearlos.
 
 ## Cómo validar
 
@@ -106,9 +117,16 @@ Actualizado al cierre de la ejecución (rama `fase-2`).
    pendiente en `/consignaciones`) → devolución (vuelve el stock) →
    `/movimientos` y `/productos/[id]` muestran el historial → `/reportes` del
    mes muestra el resumen.
+4. Contabilidad: hacer una venta, una entrega en consignación y un ingreso →
+   en `/contabilidad/asientos` deben aparecer asientos **balanceados**
+   (comprobado en test E2E: venta contado 1400/1400, consignación 300/300,
+   ingreso a plazo 500/500, venta de consignación y pago de CC también cuadran)
+   → `/contabilidad/balance-general` total deudor = acreedor →
+   `/contabilidad/resultados` del mes muestra ingresos y gastos.
 
 ## Pendiente
 
-- Revisar `docs/contabilidad-diseno.md` (módulo I) y, cuando se apruebe,
-  implementar.
-- `Contabilidad` (nav) queda deshabilitada hasta implementarla.
+- Ajustar el plan de cuentas si el contador lo pide (solo editar la migración
+  y el seed; los códigos están en `src/features/contabilidad/schema.ts`).
+- Pendiente de fase futura: asientos manuales (`origen = "manual"`) y, si
+  hiciera falta, contra-asiento reversor al eliminar movimientos.

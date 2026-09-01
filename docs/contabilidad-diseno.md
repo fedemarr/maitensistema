@@ -1,8 +1,8 @@
 # Contabilidad de partida doble — diseño (Módulo I)
 
-> **Estado: diseño para revisión. NO implementado.** Este documento propone el
-> modelo de tablas, el mapeo de cada tipo de movimiento a asientos y cómo se
-> arma el balance. Queda pendiente la revisión de las dueñas antes de codear.
+> **Estado: IMPLEMENTADO** (ramas `fase-2`, commit final del Módulo I). Este
+> documento describe el modelo y las reglas tal como quedaron implementadas.
+> Las desviaciones respecto del diseño original se listan al final (§7).
 
 ---
 
@@ -208,3 +208,36 @@ más las cuentas que el motor actual necesita.
 - No se hace contabilidad de bienes de uso (amortizaciones).
 - No hay IVA (el negocio es monotributo; confirmar).
 - La cuota del club y otros gastos fijos se cargan como "Gastos operativos".
+
+---
+
+## 8. Notas de implementación (decisiones cerradas y desvíos)
+
+Decisiones que el diseño dejaba abiertas (§6) y cómo quedaron al codear:
+
+1. **Una sola cuenta "Ventas – Maitén"** (4.1.1). Las ventas de consignación
+   usan la misma cuenta; la diferencia se ve en los libros a través del débito
+   a "Mercadería en consignación".
+2. **Eliminar un movimiento borra sus asientos derivados** (FK
+   `asientos.movimiento_id → movimientos(id) ON DELETE CASCADE`). Simple y
+   consistente. No se implementa contra-asiento reversor.
+3. **Sí, cuenta separada "Mercadería en consignación"** (1.1.5) para entregas,
+   ventas y devoluciones de consignación.
+4. **Los ajustes (`ajuste`) NO generan asiento**: son de conciliación de stock
+   (altas iniciales, correcciones) y no tocan los libros.
+5. **Plan de cuentas validado internamente** (no hay contador externo): códigos
+   jerárquicos únicos, tipado `activo|pasivo|pn|rpos|rneg`. El seed vive en la
+   migración `0003` (15 cuentas).
+6. **Todo asiento es automático y nace `confirmado`**. `origen` distingue
+   `movimiento` / `cc-pago` / `manual` (el manual queda para una fase futura;
+   hoy no hay pantalla para crear asientos a mano).
+
+Desvíos técnicos del esquema:
+
+- `movimientos.consignacion_id` es una columna **uuid sin FK** (solo vínculo de
+  procedencia): evita la circularidad TS `movimientos ↔ consignaciones`. La
+  relación se declara en Drizzle (`consignacionOrigen`).
+- `medios_pago.cuenta_id → plan_cuentas(id) ON DELETE SET NULL` (opcional). Si
+  no está mapeado (o el medio es crédito), el asiento usa **Caja** por defecto.
+- Las cuentas no tienen `cuenta_padre_id` (sin jerarquía padre/hijo); el rubro
+  es un texto libre y se agrupa solo por `tipo`.

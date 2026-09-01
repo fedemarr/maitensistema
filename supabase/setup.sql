@@ -62,7 +62,8 @@ declare
   tablas text[] := array[
     'perfiles', 'rubros', 'productos', 'variantes', 'clientes',
     'proveedores', 'medios_pago', 'movimientos', 'movimiento_items',
-    'cc_movimientos', 'consignaciones', 'auditoria'
+    'cc_movimientos', 'consignaciones', 'plan_cuentas', 'asientos',
+    'asiento_lineas', 'auditoria'
   ];
 begin
   foreach t in array tablas loop

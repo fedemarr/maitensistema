@@ -106,9 +106,8 @@ docs/                 # revisión inicial + prototipo legacy
 **Fase 2 — en curso.** Auth, sesión, protección de rutas, shell y módulo
 Productos listos (Fase 1). En Fase 2 se construyeron Rubros, Clientes,
 Proveedores, Movimientos (motor de stock), Panel de stock, Ficha de producto,
-Cuentas corrientes, Reportes y Consignaciones. Contabilidad quedó en diseño
-(`docs/contabilidad-diseno.md`, pendiente de revisión). Ver
-[`docs/fase-2-estado.md`](docs/fase-2-estado.md) para el detalle.
+Cuentas corrientes, Reportes, Consignaciones y Contabilidad (partida doble
+automática). Ver [`docs/fase-2-estado.md`](docs/fase-2-estado.md) para el detalle.
 
 Estado por módulo:
 
@@ -122,7 +121,9 @@ Estado por módulo:
 - ✅ **Cuentas corrientes** — `/cc-clientes`, `/cc-proveedores`
 - ✅ **Reporte económico** — `/reportes`
 - ✅ **Consignaciones** — `/consignaciones`
-- ⏳ Contabilidad (diseño pendiente de revisión)
+- ✅ **Contabilidad** — `/contabilidad` (plan de cuentas, balance, resultados, asientos)
 
 La lista completa y decisiones tomadas está en
 [`docs/fase-2-estado.md`](docs/fase-2-estado.md) y en la pantalla `Inicio`.
+La implementación de contabilidad se documenta en
+[`docs/contabilidad-diseno.md`](docs/contabilidad-diseno.md).
