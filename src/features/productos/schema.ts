@@ -28,6 +28,7 @@ export const productoInput = z.object({
   precioLista: z.coerce.number().min(0, "No puede ser negativo."),
   online: z.boolean(),
   activo: z.boolean(),
+  esInsumo: z.boolean(),
   fotoPath: opt(300),
   variantes: z.array(varianteInput).min(1, "Cargá al menos una variante."),
 });

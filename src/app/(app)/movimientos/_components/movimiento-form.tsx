@@ -32,8 +32,8 @@ import type {
 import {
   reglaDe,
   TIPO_LABEL,
-  TIPO_MOVIMIENTO,
-  type TipoMovimiento,
+  TIPO_MOVIMIENTO_MANUAL,
+  type TipoMovimientoManual,
 } from "@/features/movimientos/schema";
 import { fmtMoney, fmtNumber } from "@/lib/format";
 
@@ -62,7 +62,7 @@ export function MovimientoForm({
   variantes: VarianteCatalogo[];
 }) {
   const router = useRouter();
-  const [tipo, setTipo] = useState<TipoMovimiento>("ingreso");
+  const [tipo, setTipo] = useState<TipoMovimientoManual>("ingreso");
   const regla = reglaDe(tipo);
 
   const [fecha, setFecha] = useState(hoy());
@@ -74,7 +74,7 @@ export function MovimientoForm({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const tipoItems = TIPO_MOVIMIENTO.map((t) => ({
+  const tipoItems = TIPO_MOVIMIENTO_MANUAL.map((t) => ({
     label: TIPO_LABEL[t],
     value: t,
   }));
@@ -175,7 +175,7 @@ export function MovimientoForm({
             items={tipoItems}
             value={tipo}
             onValueChange={(v) => {
-              const next = v as TipoMovimiento;
+              const next = v as TipoMovimientoManual;
               setTipo(next);
               // Reinicio el tercero/medio al cambiar de regla.
               setClienteId("");

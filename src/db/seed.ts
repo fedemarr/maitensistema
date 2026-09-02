@@ -104,7 +104,26 @@ async function main() {
     }
   }
 
-  console.log("Seed OK: rubros, productos y medios de pago de ejemplo cargados.");
+  // Insumos de ejemplo (materia prima / envases).
+  const seedInsumos = [
+    { sku: "INS-BASE-SH", nombre: "Base para shampoo", unidad: "Litro" },
+    { sku: "INS-ESENCIA-AR", nombre: "Esencia Aloe/Rosa Mosqueta", unidad: "Litro" },
+    { sku: "INS-ENV-250", nombre: "Envase 250 ml", unidad: "Unidad" },
+  ];
+  for (const i of seedInsumos) {
+    const [row] = await db
+      .insert(productos)
+      .values({ sku: i.sku, nombre: i.nombre, esInsumo: true })
+      .onConflictDoNothing({ target: productos.sku })
+      .returning({ id: productos.id });
+    if (row) {
+      await db
+        .insert(variantes)
+        .values({ productoId: row.id, nombre: i.unidad, stockMin: 0 });
+    }
+  }
+
+  console.log("Seed OK: rubros, productos, insumos y medios de pago cargados.");
 }
 
 main()

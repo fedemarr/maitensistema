@@ -112,10 +112,15 @@ stock), Panel de stock, Ficha de producto, Cuentas corrientes, Reportes,
 Consignaciones y Contabilidad (partida doble automática).
 Ver [`docs/fase-2-estado.md`](docs/fase-2-estado.md) para el detalle.
 
-**Fase 3 — planificada.** Producción / órdenes de fabricación, insumos y
-recetas (cierre del circuito de stock), luego Tiendanube, gestión de usuarios,
-IA de análisis y AFIP. Encargo en
+**Fase 3 — en curso.** P0 hecho (rama `fase-3`): **Insumos**, **Recetas** y
+**Órdenes de producción** — cierra el circuito de stock (Maitén fabrica
+consumiendo materia prima). Pendiente P1/P2: gestión de usuarios, IA de
+análisis, Tiendanube, AFIP. Detalle en
+[`docs/fase-3-estado.md`](docs/fase-3-estado.md); encargo completo en
 [`docs/fase-3-opencode.md`](docs/fase-3-opencode.md).
+
+> Nota: `pnpm db:migrate` usa `scripts/db-migrate.ts` (no `drizzle-kit migrate`,
+> que falla en silencio con este pooler). `drizzle-kit generate` se usa igual.
 
 Estado por módulo:
 

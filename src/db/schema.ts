@@ -44,7 +44,7 @@ export const tipoCliente = pgEnum("tipo_cliente", [
   "particular",
 ]);
 
-/** Los 8 tipos de movimiento del negocio (spec de Lautaro) + ajuste de stock. */
+/** Los 8 tipos de movimiento del negocio (spec de Lautaro) + ajuste + producción. */
 export const tipoMovimiento = pgEnum("tipo_movimiento", [
   "ingreso", // compra a proveedor / alta de stock
   "venta",
@@ -55,6 +55,14 @@ export const tipoMovimiento = pgEnum("tipo_movimiento", [
   "rotura", // defectuoso / baja
   "devolucion_consignacion",
   "ajuste", // fija el stock a un valor contado / corrige (requiere notas)
+  "produccion", // consume insumos y da de alta producto terminado (módulo Producción)
+]);
+
+export const estadoOrdenProduccion = pgEnum("estado_orden_produccion", [
+  "borrador",
+  "en_proceso",
+  "completada",
+  "anulada",
 ]);
 
 /* ── Perfiles (espejo de auth.users) ───────────────────────── */
@@ -89,6 +97,8 @@ export const productos = pgTable("productos", {
     .default("0"),
   online: boolean("online").notNull().default(false),
   activo: boolean("activo").notNull().default(true),
+  /** true = materia prima / insumo; false = producto terminado. */
+  esInsumo: boolean("es_insumo").notNull().default(false),
   /** Ruta del archivo en Supabase Storage (bucket `productos`). */
   fotoPath: text("foto_path"),
   ...timestamps,
@@ -306,6 +316,60 @@ export const consignaciones = pgTable("consignaciones", {
   ...timestamps,
 });
 
+/* ── Producción (Fase 3) ───────────────────────────────────── */
+
+/**
+ * Receta / lista de materiales de una variante de producto terminado.
+ * Al editar se desactiva la anterior y se crea una nueva (histórico).
+ */
+export const recetas = pgTable("recetas", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  varianteTerminadoId: uuid("variante_terminado_id")
+    .notNull()
+    .references(() => variantes.id, { onDelete: "cascade" }),
+  /** Unidades de terminado que produce el lote base descripto en receta_items. */
+  rinde: integer("rinde").notNull().default(1),
+  activa: boolean("activa").notNull().default(true),
+  notas: text("notas"),
+  ...timestamps,
+});
+
+export const recetaItems = pgTable("receta_items", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  recetaId: uuid("receta_id")
+    .notNull()
+    .references(() => recetas.id, { onDelete: "cascade" }),
+  varianteInsumoId: uuid("variante_insumo_id")
+    .notNull()
+    .references(() => variantes.id, { onDelete: "restrict" }),
+  /** Consumo de este insumo por lote base (antes de merma). */
+  cantidad: numeric("cantidad", { precision: 14, scale: 4 }).notNull(),
+  /** Merma esperada, en %. Aumenta el consumo real. */
+  mermaPct: numeric("merma_pct", { precision: 5, scale: 2 })
+    .notNull()
+    .default("0"),
+});
+
+export const ordenesProduccion = pgTable("ordenes_produccion", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  varianteTerminadoId: uuid("variante_terminado_id")
+    .notNull()
+    .references(() => variantes.id, { onDelete: "restrict" }),
+  /** Unidades de terminado a producir. */
+  cantidad: integer("cantidad").notNull(),
+  estado: estadoOrdenProduccion("estado").notNull().default("borrador"),
+  fecha: date("fecha").notNull().defaultNow(),
+  /** Movimiento `produccion` generado al completar (null hasta entonces). */
+  movimientoId: uuid("movimiento_id").references(() => movimientos.id, {
+    onDelete: "set null",
+  }),
+  notas: text("notas"),
+  creadoPor: uuid("creado_por").references(() => perfiles.id, {
+    onDelete: "set null",
+  }),
+  ...timestamps,
+});
+
 /* ── Auditoría ─────────────────────────────────────────────── */
 
 export const auditoria = pgTable("auditoria", {
@@ -422,3 +486,40 @@ export const asientoLineasRelations = relations(asientoLineas, ({ one }) => ({
     references: [planCuentas.id],
   }),
 }));
+
+export const recetasRelations = relations(recetas, ({ one, many }) => ({
+  varianteTerminado: one(variantes, {
+    fields: [recetas.varianteTerminadoId],
+    references: [variantes.id],
+  }),
+  items: many(recetaItems),
+}));
+
+export const recetaItemsRelations = relations(recetaItems, ({ one }) => ({
+  receta: one(recetas, {
+    fields: [recetaItems.recetaId],
+    references: [recetas.id],
+  }),
+  varianteInsumo: one(variantes, {
+    fields: [recetaItems.varianteInsumoId],
+    references: [variantes.id],
+  }),
+}));
+
+export const ordenesProduccionRelations = relations(
+  ordenesProduccion,
+  ({ one }) => ({
+    varianteTerminado: one(variantes, {
+      fields: [ordenesProduccion.varianteTerminadoId],
+      references: [variantes.id],
+    }),
+    movimiento: one(movimientos, {
+      fields: [ordenesProduccion.movimientoId],
+      references: [movimientos.id],
+    }),
+    creador: one(perfiles, {
+      fields: [ordenesProduccion.creadoPor],
+      references: [perfiles.id],
+    }),
+  }),
+);

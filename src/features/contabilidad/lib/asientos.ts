@@ -110,7 +110,9 @@ export async function generarAsientoMovimiento(
   if (!mov) throw new Error("No encontré el movimiento.");
 
   const tipo = mov.tipo as TipoMovimiento;
-  if (tipo === "ajuste") return null;
+  // `ajuste` y `produccion` no generan asiento: el primero es conciliación de
+  // stock; el segundo mueve valor dentro de Mercadería (insumo → terminado).
+  if (tipo === "ajuste" || tipo === "produccion") return null;
 
   const items = await tx
     .select({

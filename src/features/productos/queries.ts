@@ -22,14 +22,21 @@ export type ProductoListItem = {
   precioLista: string;
   online: boolean;
   activo: boolean;
+  esInsumo: boolean;
   fotoPath: string | null;
   stockTotal: number;
   bajoMinimo: boolean;
 };
 
 /** Lista de productos con stock agregado y flag de stock bajo mínimo. */
-export async function listProductos(): Promise<ProductoListItem[]> {
+export async function listProductos(
+  opts: { esInsumo?: boolean } = {},
+): Promise<ProductoListItem[]> {
   const rows = await db.query.productos.findMany({
+    where:
+      opts.esInsumo === undefined
+        ? undefined
+        : eq(productos.esInsumo, opts.esInsumo),
     with: {
       rubro: true,
       variantes: { columns: { stock: true, stockMin: true, activo: true } },
@@ -47,6 +54,7 @@ export async function listProductos(): Promise<ProductoListItem[]> {
       precioLista: p.precioLista,
       online: p.online,
       activo: p.activo,
+      esInsumo: p.esInsumo,
       fotoPath: p.fotoPath,
       stockTotal: vs.reduce((acc, v) => acc + v.stock, 0),
       bajoMinimo: vs.some((v) => v.stock < v.stockMin),
@@ -81,6 +89,44 @@ export async function skuEnUso(sku: string, exceptId?: string): Promise<boolean>
     )
     .limit(1);
   return rows.length > 0;
+}
+
+export type VarianteOpcion = {
+  varianteId: string;
+  label: string;
+  stock: number;
+  costoPromedio: string;
+};
+
+/** Variantes activas de productos terminados (esInsumo=false) o insumos (true). */
+export async function listVariantesActivas(
+  esInsumo: boolean,
+): Promise<VarianteOpcion[]> {
+  const rows = await db
+    .select({
+      varianteId: variantes.id,
+      varianteNombre: variantes.nombre,
+      productoNombre: productos.nombre,
+      stock: variantes.stock,
+      costoPromedio: variantes.costoPromedio,
+    })
+    .from(variantes)
+    .innerJoin(productos, eq(variantes.productoId, productos.id))
+    .where(
+      and(
+        eq(variantes.activo, true),
+        eq(productos.activo, true),
+        eq(productos.esInsumo, esInsumo),
+      ),
+    )
+    .orderBy(asc(productos.nombre), asc(variantes.nombre));
+
+  return rows.map((r) => ({
+    varianteId: r.varianteId,
+    label: `${r.productoNombre} — ${r.varianteNombre}`,
+    stock: r.stock,
+    costoPromedio: r.costoPromedio,
+  }));
 }
 
 export async function contarMovimientosDeVariante(

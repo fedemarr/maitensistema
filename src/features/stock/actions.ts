@@ -3,7 +3,12 @@
 import { eq, sql } from "drizzle-orm";
 
 import { db } from "@/db";
-import { movimientoItems, movimientos } from "@/db/schema";
+import {
+  movimientoItems,
+  movimientos,
+  productos,
+  variantes,
+} from "@/db/schema";
 import { registrarAuditoria } from "@/lib/audit";
 import { requireRole } from "@/lib/auth";
 
@@ -33,12 +38,18 @@ export async function verificarStock() {
             then ${movimientoItems.cantidad}
           when ${movimientos.tipo} = 'ajuste'
             then ${movimientoItems.cantidad}
+          when ${movimientos.tipo} = 'produccion'
+            then case when ${productos.esInsumo}
+                   then -${movimientoItems.cantidad}
+                   else ${movimientoItems.cantidad} end
           else -${movimientoItems.cantidad}
         end)
       `,
     })
     .from(movimientoItems)
     .innerJoin(movimientos, eq(movimientoItems.movimientoId, movimientos.id))
+    .innerJoin(variantes, eq(movimientoItems.varianteId, variantes.id))
+    .innerJoin(productos, eq(variantes.productoId, productos.id))
     .groupBy(movimientoItems.varianteId);
 
   const variantesReales = await db.query.variantes.findMany({

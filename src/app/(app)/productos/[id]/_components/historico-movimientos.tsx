@@ -31,17 +31,22 @@ import { fmtDate, fmtMoney, fmtNumber } from "@/lib/format";
 
 const SIN_TIPO = "__none__";
 
-function deltaDe(m: MovimientoProducto): number {
+function deltaDe(m: MovimientoProducto, esInsumo: boolean): number {
   const s = signoDe(m.tipo);
-  return s === "ajuste" ? m.cantidad : s * m.cantidad;
+  if (s === "ajuste") return m.cantidad;
+  // En producción, el insumo se consume (−) y el terminado se genera (+).
+  if (s === "produccion") return esInsumo ? -m.cantidad : m.cantidad;
+  return s * m.cantidad;
 }
 
 const SIGNOS_SALIDA = new Set(["venta", "consignacion", "canje", "presentacion", "regalo", "rotura"]);
 
 export function HistoricoMovimientos({
   movimientos,
+  esInsumo = false,
 }: {
   movimientos: MovimientoProducto[];
+  esInsumo?: boolean;
 }) {
   const [tipo, setTipo] = useState("");
   const [desde, setDesde] = useState("");
@@ -172,7 +177,7 @@ export function HistoricoMovimientos({
                 </TableRow>
               ) : (
                 filtrados.map((m) => {
-                  const delta = deltaDe(m);
+                  const delta = deltaDe(m, esInsumo);
                   return (
                     <TableRow key={m.itemId}>
                       <TableCell className="text-xs tabular-nums">

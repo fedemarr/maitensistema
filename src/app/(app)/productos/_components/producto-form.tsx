@@ -62,12 +62,16 @@ function fromProducto(p: ProductoConVariantes): VarianteRow[] {
 export function ProductoForm({
   producto,
   rubros,
+  esInsumo: esInsumoProp = false,
 }: {
   producto?: ProductoConVariantes;
   rubros: Rubro[];
+  esInsumo?: boolean;
 }) {
   const router = useRouter();
   const editing = Boolean(producto);
+  const esInsumo = producto?.esInsumo ?? esInsumoProp;
+  const base = esInsumo ? "/insumos" : "/productos";
   const rubroItems = [
     { label: "Sin rubro", value: SIN_RUBRO },
     ...rubros.map((r) => ({ label: r.nombre, value: r.id })),
@@ -125,8 +129,9 @@ export function ProductoForm({
       nombre,
       rubroId: rubroId || "",
       precioLista: Number(precio),
-      online,
+      online: esInsumo ? false : online,
       activo,
+      esInsumo,
       fotoPath: fotoPath || "",
       variantes: variantes.map((v) => ({
         id: v.id,
@@ -209,10 +214,12 @@ export function ProductoForm({
       </div>
 
       <div className="flex flex-wrap gap-6">
-        <label className="flex items-center gap-2 text-sm">
-          <Switch checked={online} onCheckedChange={setOnline} />
-          Se vende online
-        </label>
+        {!esInsumo ? (
+          <label className="flex items-center gap-2 text-sm">
+            <Switch checked={online} onCheckedChange={setOnline} />
+            Se vende online
+          </label>
+        ) : null}
         <label className="flex items-center gap-2 text-sm">
           <Switch checked={activo} onCheckedChange={setActivo} />
           Activo
@@ -371,7 +378,7 @@ export function ProductoForm({
         <Button
           type="button"
           variant="ghost"
-          onClick={() => router.push("/productos")}
+          onClick={() => router.push(base)}
         >
           Cancelar
         </Button>

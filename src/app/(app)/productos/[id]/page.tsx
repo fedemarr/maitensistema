@@ -18,13 +18,19 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { getProducto, listMovimientosDeProducto } from "@/features/productos/queries";
+import {
+  getProducto,
+  listMovimientosDeProducto,
+  listVariantesActivas,
+} from "@/features/productos/queries";
 import { getFotoUrl } from "@/features/productos/storage";
+import { getRecetaActiva } from "@/features/recetas/queries";
 import { puedeEscribir, requireUser } from "@/lib/auth";
 import { fmtMoney, fmtNumber } from "@/lib/format";
 
 import { ProductoAcciones } from "./_acciones";
 import { HistoricoMovimientos } from "./_components/historico-movimientos";
+import { RecetaEditor } from "./_components/receta-editor";
 
 export default async function FichaProductoPage({
   params,
@@ -40,6 +46,18 @@ export default async function FichaProductoPage({
   const editable = puedeEscribir(user.rol);
   const fotoUrl = await getFotoUrl(producto.fotoPath);
   const activas = producto.variantes.filter((v) => v.activo);
+
+  // Recetas: solo para productos terminados.
+  const insumos = producto.esInsumo ? [] : await listVariantesActivas(true);
+  const recetas = producto.esInsumo
+    ? []
+    : await Promise.all(
+        activas.map(async (v) => ({
+          varianteId: v.id,
+          varianteNombre: v.nombre,
+          receta: await getRecetaActiva(v.id),
+        })),
+      );
   const stockTotal = activas.reduce((a, v) => a + v.stock, 0);
   const bajoMinimo = activas.some((v) => v.stock < v.stockMin);
   const valorStock = activas.reduce(
@@ -195,7 +213,23 @@ export default async function FichaProductoPage({
         </CardContent>
       </Card>
 
-      <HistoricoMovimientos movimientos={movimientos} />
+      {!producto.esInsumo
+        ? recetas.map((r) => (
+            <RecetaEditor
+              key={r.varianteId}
+              varianteTerminadoId={r.varianteId}
+              varianteNombre={r.varianteNombre}
+              receta={r.receta}
+              insumos={insumos}
+              editable={editable}
+            />
+          ))
+        : null}
+
+      <HistoricoMovimientos
+        movimientos={movimientos}
+        esInsumo={producto.esInsumo}
+      />
     </div>
   );
 }

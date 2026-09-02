@@ -10,9 +10,25 @@ export const TIPO_MOVIMIENTO = [
   "rotura",
   "devolucion_consignacion",
   "ajuste",
+  "produccion",
 ] as const;
 
 export type TipoMovimiento = (typeof TIPO_MOVIMIENTO)[number];
+
+/** Tipos que el usuario carga a mano (produccion se genera desde su módulo). */
+export type TipoMovimientoManual = Exclude<TipoMovimiento, "produccion">;
+
+export const TIPO_MOVIMIENTO_MANUAL: TipoMovimientoManual[] = [
+  "ingreso",
+  "venta",
+  "consignacion",
+  "canje",
+  "presentacion",
+  "regalo",
+  "rotura",
+  "devolucion_consignacion",
+  "ajuste",
+];
 
 export const TIPO_LABEL: Record<TipoMovimiento, string> = {
   ingreso: "Ingreso",
@@ -24,6 +40,7 @@ export const TIPO_LABEL: Record<TipoMovimiento, string> = {
   rotura: "Rotura / Defectuoso",
   devolucion_consignacion: "Devolución de consignación",
   ajuste: "Ajuste de stock",
+  produccion: "Producción",
 };
 
 /**
@@ -32,8 +49,11 @@ export const TIPO_LABEL: Record<TipoMovimiento, string> = {
  */
 export type ReglaMovimiento = {
   tipo: TipoMovimiento;
-  /** Efecto sobre el stock por ítem. `ajuste` fija al objetivo. */
-  signo: 1 | -1 | "ajuste";
+  /**
+   * Efecto sobre el stock por ítem. `ajuste` fija al objetivo;
+   * `produccion` lo resuelve por ítem (insumo −, terminado +).
+   */
+  signo: 1 | -1 | "ajuste" | "produccion";
   medioPago: "requerido" | "opcional" | "no";
   tercero:
     | "proveedor-requerido"
@@ -131,13 +151,31 @@ export const REGLAS_MOVIMIENTO: ReglaMovimiento[] = [
     total: "ajuste",
     requiereNotas: true,
   },
+  {
+    // Se genera desde el módulo Producción, no desde el form manual.
+    // El signo se resuelve por ítem (insumo resta, terminado suma).
+    tipo: "produccion",
+    signo: "produccion",
+    medioPago: "no",
+    tercero: "ninguno",
+    actualizaCosto: false,
+    total: "costo",
+    requiereNotas: false,
+  },
 ];
 
 export const reglaDe = (tipo: TipoMovimiento): ReglaMovimiento =>
   REGLAS_MOVIMIENTO.find((r) => r.tipo === tipo)!;
 
-export const signoDe = (tipo: TipoMovimiento): 1 | -1 | "ajuste" =>
-  reglaDe(tipo).signo;
+export const signoDe = (
+  tipo: TipoMovimiento,
+): 1 | -1 | "ajuste" | "produccion" => reglaDe(tipo).signo;
+
+/** Signo numérico para tipos de efecto fijo (+1 entra / −1 sale). */
+export function signoNumerico(regla: ReglaMovimiento): 1 | -1 {
+  if (regla.signo === 1 || regla.signo === -1) return regla.signo;
+  throw new Error(`El tipo "${regla.tipo}" no tiene signo fijo.`);
+}
 
 export const itemMovimientoInput = z
   .object({

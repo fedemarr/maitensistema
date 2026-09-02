@@ -13,6 +13,7 @@ const NAV: { seccion: string; items: NavItem[] }[] = [
     items: [
       { href: "/", label: "Inicio", ready: true },
       { href: "/movimientos", label: "Movimientos", ready: true },
+      { href: "/produccion", label: "Producción", ready: true },
       { href: "/stock", label: "Stock", ready: true },
       { href: "/consignaciones", label: "Consignaciones", ready: true },
     ],
@@ -21,6 +22,7 @@ const NAV: { seccion: string; items: NavItem[] }[] = [
     seccion: "Registros",
     items: [
       { href: "/productos", label: "Productos", ready: true },
+      { href: "/insumos", label: "Insumos", ready: true },
       { href: "/clientes", label: "Clientes", ready: true },
       { href: "/proveedores", label: "Proveedores", ready: true },
     ],

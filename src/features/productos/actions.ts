@@ -43,6 +43,7 @@ export async function guardarProducto(
           precioLista: String(data.precioLista),
           online: data.online,
           activo: data.activo,
+          esInsumo: data.esInsumo,
           fotoPath: data.fotoPath,
         })
         .where(eq(productos.id, pid));
@@ -56,6 +57,7 @@ export async function guardarProducto(
           precioLista: String(data.precioLista),
           online: data.online,
           activo: data.activo,
+          esInsumo: data.esInsumo,
           fotoPath: data.fotoPath,
         })
         .returning({ id: productos.id });
@@ -164,6 +166,7 @@ export async function guardarProducto(
   });
 
   revalidatePath("/productos");
+  revalidatePath("/insumos");
   revalidatePath(`/productos/${productoId}`);
   revalidatePath("/movimientos");
   revalidatePath("/stock");

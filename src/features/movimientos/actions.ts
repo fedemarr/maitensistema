@@ -15,7 +15,12 @@ import {
 import { registrarAuditoria } from "@/lib/audit";
 import { requireRole } from "@/lib/auth";
 import { generarAsientoMovimiento } from "@/features/contabilidad/lib/asientos";
-import { movimientoInput, reglaDe, type MovimientoInput } from "./schema";
+import {
+  movimientoInput,
+  reglaDe,
+  signoNumerico,
+  type MovimientoInput,
+} from "./schema";
 
 export type ActionResult =
   | { ok: true; id: string }
@@ -122,7 +127,7 @@ export async function crearMovimiento(
         if (delta === 0) continue;
         itemDeltas.push({ varianteId: v.id, delta, cantidad: delta, objetivo });
       } else {
-        const delta = regla.signo * item.cantidad;
+        const delta = signoNumerico(regla) * item.cantidad;
         // Invariante 4: nunca stock negativo.
         if (v.stock + delta < 0) {
           return {
@@ -313,6 +318,14 @@ export async function eliminarMovimiento(id: string): Promise<ActionResult> {
   });
   if (!mov) return { ok: false, error: "No encontré el movimiento." };
 
+  if (mov.tipo === "produccion") {
+    return {
+      ok: false,
+      error:
+        "Este movimiento sale de una orden de producción. Anulá la orden desde Producción.",
+    };
+  }
+
   const result = await db.transaction(async (tx) => {
     const regla = reglaDe(mov.tipo as MovimientoInput["tipo"]);
 
@@ -320,7 +333,9 @@ export async function eliminarMovimiento(id: string): Promise<ActionResult> {
     // Para `ajuste`, cantidad guarda el delta con signo, así que −delta restaura.
     for (const item of mov.items) {
       const delta =
-        regla.signo === "ajuste" ? item.cantidad : regla.signo * item.cantidad;
+        regla.signo === "ajuste"
+          ? item.cantidad
+          : signoNumerico(regla) * item.cantidad;
 
       // Invariante 4: revertir no puede dejar stock negativo (ej: borrar un
       // ingreso cuya mercadería ya se vendió). Chequeo explícito + CHECK en la BD.
