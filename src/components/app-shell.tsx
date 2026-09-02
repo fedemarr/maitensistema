@@ -1,49 +1,21 @@
-import Link from "next/link";
+"use client";
+
+import { MenuIcon } from "lucide-react";
+import { useState } from "react";
 
 import { logout } from "@/app/(auth)/login/actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import type { Rol } from "@/lib/auth";
 
-type NavItem = { href: string; label: string; ready?: boolean };
-
-const NAV: { seccion: string; items: NavItem[] }[] = [
-  {
-    seccion: "Operación",
-    items: [
-      { href: "/", label: "Inicio", ready: true },
-      { href: "/movimientos", label: "Movimientos", ready: true },
-      { href: "/produccion", label: "Producción", ready: true },
-      { href: "/stock", label: "Stock", ready: true },
-      { href: "/consignaciones", label: "Consignaciones", ready: true },
-    ],
-  },
-  {
-    seccion: "Registros",
-    items: [
-      { href: "/productos", label: "Productos", ready: true },
-      { href: "/insumos", label: "Insumos", ready: true },
-      { href: "/clientes", label: "Clientes", ready: true },
-      { href: "/proveedores", label: "Proveedores", ready: true },
-    ],
-  },
-  {
-    seccion: "Finanzas",
-    items: [
-      { href: "/cc-clientes", label: "CC Clientes", ready: true },
-      { href: "/cc-proveedores", label: "CC Proveedores", ready: true },
-      { href: "/contabilidad", label: "Contabilidad", ready: true },
-      { href: "/reportes", label: "Reportes", ready: true },
-    ],
-  },
-  {
-    seccion: "Configuración",
-    items: [
-      { href: "/config/rubros", label: "Rubros", ready: true },
-      { href: "/config/usuarios", label: "Usuarios" },
-    ],
-  },
-];
+import { SideNav } from "./side-nav";
 
 const ROL_LABEL: Record<Rol, string> = {
   admin: "Admin",
@@ -62,22 +34,51 @@ export function AppShell({
   rol: Rol;
   children: React.ReactNode;
 }) {
+  const [open, setOpen] = useState(false);
+
   return (
-    <div className="flex min-h-full flex-col">
-      <header className="flex h-14 items-center gap-3 border-b bg-primary px-4 text-primary-foreground">
-        <span className="font-semibold">Maitén</span>
-        <span className="hidden text-xs opacity-80 sm:inline">
-          Sistema de gestión
-        </span>
-        <div className="ml-auto flex items-center gap-3 text-sm">
-          <span className="hidden opacity-90 md:inline" title={email}>
+    <div className="flex min-h-full flex-col bg-background">
+      <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b bg-background/95 px-3 backdrop-blur supports-[backdrop-filter]:bg-background/80 sm:px-4">
+        <Sheet open={open} onOpenChange={setOpen}>
+          <SheetTrigger
+            render={
+              <Button variant="ghost" size="icon-sm" className="md:hidden" />
+            }
+          >
+            <MenuIcon className="size-4" />
+            <span className="sr-only">Abrir menú</span>
+          </SheetTrigger>
+          <SheetContent side="left" className="w-64 bg-sidebar p-0">
+            <SheetHeader className="border-b px-4 py-3">
+              <SheetTitle className="text-left">
+                <span className="font-semibold text-primary">Maitén</span>
+              </SheetTitle>
+            </SheetHeader>
+            <div className="overflow-y-auto">
+              <SideNav onNavigate={() => setOpen(false)} />
+            </div>
+          </SheetContent>
+        </Sheet>
+
+        <div className="flex items-baseline gap-2">
+          <span className="text-[15px] font-semibold text-primary">Maitén</span>
+          <span className="hidden text-xs text-muted-foreground sm:inline">
+            Sistema de gestión
+          </span>
+        </div>
+
+        <div className="ml-auto flex items-center gap-2.5 text-sm">
+          <span
+            className="hidden text-muted-foreground md:inline"
+            title={email}
+          >
             {nombre}
           </span>
           <Badge variant="secondary" className="hidden sm:inline-flex">
             {ROL_LABEL[rol]}
           </Badge>
           <form action={logout}>
-            <Button type="submit" variant="secondary" size="sm" className="h-8">
+            <Button type="submit" variant="outline" size="sm">
               Salir
             </Button>
           </form>
@@ -85,36 +86,13 @@ export function AppShell({
       </header>
 
       <div className="flex flex-1">
-        <nav className="hidden w-56 shrink-0 border-r bg-sidebar p-3 md:block">
-          {NAV.map((grupo) => (
-            <div key={grupo.seccion} className="mb-4">
-              <p className="px-2 pb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                {grupo.seccion}
-              </p>
-              <ul className="space-y-0.5">
-                {grupo.items.map((item) => (
-                  <li key={item.href}>
-                    {item.ready ? (
-                      <Link
-                        href={item.href}
-                        className="block rounded-md px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
-                      >
-                        {item.label}
-                      </Link>
-                    ) : (
-                      <span className="block cursor-not-allowed rounded-md px-2 py-1.5 text-sm text-muted-foreground/60">
-                        {item.label}
-                        <span className="ml-1 text-[10px]">pronto</span>
-                      </span>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </nav>
+        <aside className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-60 shrink-0 overflow-y-auto border-r bg-sidebar md:block">
+          <SideNav />
+        </aside>
 
-        <main className="min-w-0 flex-1 p-4 md:p-6">{children}</main>
+        <main className="min-w-0 flex-1 px-4 py-6 sm:px-6 lg:px-8">
+          {children}
+        </main>
       </div>
     </div>
   );
