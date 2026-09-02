@@ -6,7 +6,9 @@
 import { createClient } from "@supabase/supabase-js";
 import postgres from "postgres";
 
-const [email, password, nombre] = process.argv.slice(2);
+// `pnpm create-admin -- a b c` deja un "--" suelto en argv; lo filtramos.
+const args = process.argv.slice(2).filter((a) => a !== "--");
+const [email, password, nombre] = args;
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
