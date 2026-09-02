@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -41,7 +42,15 @@ export default function LoginPage() {
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="password">Contraseña</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Contraseña</Label>
+                <Link
+                  href="/recuperar"
+                  className="text-xs text-muted-foreground hover:text-foreground hover:underline"
+                >
+                  ¿La olvidaste?
+                </Link>
+              </div>
               <Input
                 id="password"
                 name="password"

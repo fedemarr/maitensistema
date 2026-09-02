@@ -12,6 +12,7 @@ import {
   PackageIcon,
   ShapesIcon,
   TruckIcon,
+  UserCogIcon,
   UsersIcon,
   WalletIcon,
   type LucideIcon,
@@ -65,12 +66,7 @@ const NAV: { seccion: string; items: Item[] }[] = [
     seccion: "Configuración",
     items: [
       { href: "/config/rubros", label: "Rubros", icon: ShapesIcon },
-      {
-        href: "/config/usuarios",
-        label: "Usuarios",
-        icon: UsersIcon,
-        disabled: true,
-      },
+      { href: "/config/usuarios", label: "Usuarios", icon: UserCogIcon },
     ],
   },
 ];

@@ -4,7 +4,12 @@ import { NextResponse, type NextRequest } from "next/server";
 import { env } from "@/lib/env";
 
 /** Rutas accesibles sin sesión. */
-const PUBLIC_PATHS = ["/login", "/auth"];
+const PUBLIC_PATHS = [
+  "/login",
+  "/auth",
+  "/recuperar",
+  "/actualizar-clave",
+];
 
 /**
  * Refresca la sesión de Supabase en cada request y protege rutas.
