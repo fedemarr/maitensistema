@@ -88,10 +88,29 @@ Rama `fase-3`. Hecha por Claude (no OpenCode). P0 completo; P1/P2 pendientes.
 7. Probar falta de stock: subí la cantidad y verificá que la orden **no** se
    completa y dice qué insumo falta.
 
-## Pendiente (P1 / P2 — para OpenCode o una próxima)
+## P1 / P2
 
-- **M. Usuarios y reset de contraseña** (`/config/usuarios`, flujo de recupero).
-- **N. IA de análisis server-side** (`/api/analisis`, `claude-sonnet-5`).
-- **O. Tiendanube** (diseño + webhook de ventas + sync de stock).
-- **P. AFIP** (solo diseño).
-- Ver `docs/fase-3-opencode.md` §4 (M–P) y §5 (cierre para producción).
+- **M. Usuarios y reset de contraseña** — ✅ hecho. `/config/usuarios` (admin:
+  invitar por email, cambiar rol, activar/desactivar) + `/recuperar` y
+  `/actualizar-clave` + `/auth/callback`. Requiere configurar en Supabase el
+  Site URL y los Redirect URLs (ver README). Email nativo de Supabase está
+  rate-limited; para producción conectar SMTP propio (Resend).
+- **N. IA de análisis** — pausado por decisión del usuario (no ahora).
+- **O. Tiendanube** — diseño en `docs/tiendanube-diseno.md`. Recomendación:
+  integrar Tiendanube ahora (webhook de ventas + cron de sync de stock) y, a
+  futuro, tienda propia como route group `(tienda)/` en este mismo repo.
+- **P. AFIP** — diseño en `docs/afip-diseno.md`. Recomendación: empezar con un
+  campo manual de nº de comprobante; luego un servicio intermediario
+  (AfipSDK / TusFacturas). Falta definir condición fiscal con el contador.
+
+## Cierre para producción (§5 de fase-3-opencode.md)
+
+- ✅ RLS de las tablas nuevas (`recetas`, `receta_items`, `ordenes_produccion`)
+  en `supabase/setup.sql`, aplicado.
+- ✅ Todas las Server Actions nuevas usan `requireRole`.
+- ✅ Seed con insumos de ejemplo.
+- 👤 **Rotar credenciales de Supabase** (la publishable key vieja quedó en el
+  historial del repo; service key y password circularon en chat).
+- 👤 **Supabase Pro** (~$25/mes) por los backups diarios y para que la base no
+  se pause.
+- 👤 Configurar Site URL / Redirect URLs de Auth y (para emails reales) SMTP.

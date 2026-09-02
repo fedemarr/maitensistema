@@ -112,12 +112,26 @@ stock), Panel de stock, Ficha de producto, Cuentas corrientes, Reportes,
 Consignaciones y Contabilidad (partida doble automática).
 Ver [`docs/fase-2-estado.md`](docs/fase-2-estado.md) para el detalle.
 
-**Fase 3 — en curso.** P0 hecho (rama `fase-3`): **Insumos**, **Recetas** y
-**Órdenes de producción** — cierra el circuito de stock (Maitén fabrica
-consumiendo materia prima). Pendiente P1/P2: gestión de usuarios, IA de
-análisis, Tiendanube, AFIP. Detalle en
-[`docs/fase-3-estado.md`](docs/fase-3-estado.md); encargo completo en
-[`docs/fase-3-opencode.md`](docs/fase-3-opencode.md).
+**Fase 3 — en curso.**
+- ✅ **P0**: Insumos, Recetas y Órdenes de producción (cierra el circuito de stock).
+- ✅ **UI**: sidebar con iconos + ruta activa, dashboard con KPIs.
+- ✅ **M**: usuarios (`/config/usuarios`) y recupero de contraseña.
+- ⏸️ **N** (IA de análisis): pausado.
+- 📝 **O** (Tiendanube) y **P** (AFIP): diseñados, ver
+  [`docs/tiendanube-diseno.md`](docs/tiendanube-diseno.md) y
+  [`docs/afip-diseno.md`](docs/afip-diseno.md).
+
+Detalle en [`docs/fase-3-estado.md`](docs/fase-3-estado.md).
+
+### Configuración de Supabase Auth (para invitaciones y recupero)
+
+En el dashboard de Supabase → **Authentication → URL Configuration**:
+- **Site URL**: `https://maitensistema.vercel.app`
+- **Redirect URLs**: agregar `https://maitensistema.vercel.app/auth/callback`
+  y `http://localhost:3000/auth/callback`
+
+El email nativo de Supabase está limitado (~2-4/hora). Para producción,
+conectar un SMTP propio (Resend tiene tier gratis).
 
 > Nota: `pnpm db:migrate` usa `scripts/db-migrate.ts` (no `drizzle-kit migrate`,
 > que falla en silencio con este pooler). `drizzle-kit generate` se usa igual.
