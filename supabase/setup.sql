@@ -60,10 +60,12 @@ do $$
 declare
   t text;
   tablas text[] := array[
-    'perfiles', 'rubros', 'productos', 'variantes', 'clientes',
-    'proveedores', 'medios_pago', 'movimientos', 'movimiento_items',
-    'cc_movimientos', 'consignaciones', 'plan_cuentas', 'asientos',
-    'asiento_lineas', 'recetas', 'receta_items', 'ordenes_produccion',
+    'perfiles', 'rubros', 'proveedores', 'clientes', 'productos',
+    'recetas', 'receta_lineas', 'lotes',
+    'compras_insumo', 'compra_insumo_lineas', 'bajas_insumo',
+    'precios_fabricacion', 'ordenes_produccion', 'orden_lineas',
+    'stock_lotes', 'movimientos', 'movimiento_items', 'movimiento_item_lotes',
+    'consignaciones', 'plan_cuentas', 'asientos', 'asiento_lineas',
     'auditoria'
   ];
 begin
