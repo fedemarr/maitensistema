@@ -1,5 +1,5 @@
 {
-  "id": "604e974c-dcd9-4f74-889e-581881feaa3a",
+  "id": "1b95fef4-6769-44cb-9842-fb007db6e414",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -1738,6 +1738,13 @@
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": false
+        },
+        "stock_insumo": {
+          "name": "stock_insumo",
+          "type": "numeric(14, 4)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'0'"
         },
         "proveedor_habitual_id": {
           "name": "proveedor_habitual_id",

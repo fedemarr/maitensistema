@@ -1,19 +1,23 @@
 import { z } from "zod";
 
 export const tipoClienteEnum = [
-  "veterinaria",
-  "peluqueria",
-  "influencer",
-  "mayorista",
   "particular",
+  "veterinaria",
+  "pet_shop",
+  "distribuidor",
+  "marca_aliada",
+  "prensa_influencer",
 ] as const;
 
-export const TIPO_LABEL: Record<(typeof tipoClienteEnum)[number], string> = {
-  veterinaria: "Veterinaria",
-  peluqueria: "Peluquería",
-  influencer: "Influencer",
-  mayorista: "Mayorista",
+export type TipoCliente = (typeof tipoClienteEnum)[number];
+
+export const TIPO_LABEL: Record<TipoCliente, string> = {
   particular: "Particular",
+  veterinaria: "Veterinaria",
+  pet_shop: "Pet shop",
+  distribuidor: "Distribuidor / mayorista",
+  marca_aliada: "Marca aliada",
+  prensa_influencer: "Prensa / influencer",
 };
 
 export const clienteInput = z.object({

@@ -11,9 +11,7 @@ import {
 } from "@/components/ui/card";
 import { getCliente } from "@/features/clientes/queries";
 import { TIPO_LABEL } from "@/features/clientes/schema";
-import { getTerceroSaldo } from "@/features/cc/queries";
 import { puedeEscribir, requireUser } from "@/lib/auth";
-import { fmtMoney } from "@/lib/format";
 
 import { ClienteAcciones } from "./_acciones";
 
@@ -26,7 +24,6 @@ export default async function FichaClientePage({
   const user = await requireUser();
   const cliente = await getCliente(id);
   if (!cliente) notFound();
-  const saldo = await getTerceroSaldo("cliente", id);
 
   const editable = puedeEscribir(user.rol);
 
@@ -63,43 +60,6 @@ export default async function FichaClientePage({
             <ClienteAcciones id={id} activo={cliente.activo} rol={user.rol} />
           </div>
         ) : null}
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium uppercase text-muted-foreground">
-              Saldo CC
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p
-              className={`text-2xl font-semibold tabular-nums ${
-                saldo < 0 ? "text-destructive" : ""
-              }`}
-            >
-              {fmtMoney(saldo)}
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              <Link href={`/cc-clientes/${id}`} className="underline">
-                Ver cuenta corriente
-              </Link>
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium uppercase text-muted-foreground">
-              Últimos movimientos
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-semibold">—</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Se completa en el módulo Movimientos.
-            </p>
-          </CardContent>
-        </Card>
       </div>
 
       <Card>

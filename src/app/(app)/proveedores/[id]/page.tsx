@@ -9,10 +9,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { getTerceroSaldo } from "@/features/cc/queries";
 import { getProveedor } from "@/features/proveedores/queries";
 import { puedeEscribir, requireUser } from "@/lib/auth";
-import { fmtMoney } from "@/lib/format";
 
 import { ProveedorAcciones } from "./_acciones";
 
@@ -25,7 +23,6 @@ export default async function FichaProveedorPage({
   const user = await requireUser();
   const proveedor = await getProveedor(id);
   if (!proveedor) notFound();
-  const saldo = await getTerceroSaldo("proveedor", id);
 
   const editable = puedeEscribir(user.rol);
 
@@ -59,43 +56,6 @@ export default async function FichaProveedorPage({
             <ProveedorAcciones id={id} activo={proveedor.activo} rol={user.rol} />
           </div>
         ) : null}
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium uppercase text-muted-foreground">
-              Saldo CC
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p
-              className={`text-2xl font-semibold tabular-nums ${
-                saldo < 0 ? "text-destructive" : ""
-              }`}
-            >
-              {fmtMoney(saldo)}
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              <Link href={`/cc-proveedores/${id}`} className="underline">
-                Ver cuenta corriente
-              </Link>
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium uppercase text-muted-foreground">
-              Últimos movimientos
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-semibold">—</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Se completa en el módulo Movimientos.
-            </p>
-          </CardContent>
-        </Card>
       </div>
 
       <Card>

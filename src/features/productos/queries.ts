@@ -1,82 +1,157 @@
 import "server-only";
 
-import { and, asc, count, desc, eq, gte, lte, ne, sql } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, ne, sql } from "drizzle-orm";
 
 import { db } from "@/db";
-import {
-  clientes,
-  mediosPago,
-  movimientoItems,
-  movimientos,
-  productos,
-  proveedores,
-  variantes,
-} from "@/db/schema";
-import type { TipoMovimiento } from "@/features/movimientos/schema";
+import { ordenesProduccion, productos, recetas } from "@/db/schema";
 
 export type ProductoListItem = {
   id: string;
   sku: string;
   nombre: string;
   rubro: string | null;
-  precioLista: string;
+  presentacion: string | null;
+  stockMinimo: number;
   online: boolean;
   activo: boolean;
-  esInsumo: boolean;
-  fotoPath: string | null;
-  stockTotal: number;
-  bajoMinimo: boolean;
+  ppp: string;
+  stockDeposito: number;
+  tieneReceta: boolean;
 };
 
-/** Lista de productos con stock agregado y flag de stock bajo mínimo. */
-export async function listProductos(
-  opts: { esInsumo?: boolean } = {},
-): Promise<ProductoListItem[]> {
+/** Lista de productos terminados con stock en depósito y flag de receta. */
+export async function listProductos(): Promise<ProductoListItem[]> {
   const rows = await db.query.productos.findMany({
-    where:
-      opts.esInsumo === undefined
-        ? undefined
-        : eq(productos.esInsumo, opts.esInsumo),
+    where: eq(productos.esInsumo, false),
     with: {
-      rubro: true,
-      variantes: { columns: { stock: true, stockMin: true, activo: true } },
+      rubro: { columns: { nombre: true } },
+      stockLotes: { columns: { unidadesEnDeposito: true } },
+      recetas: { columns: { id: true, vigenteHasta: true } },
     },
     orderBy: (p) => [asc(p.nombre)],
   });
 
-  return rows.map((p) => {
-    const vs = p.variantes.filter((v) => v.activo);
-    return {
-      id: p.id,
-      sku: p.sku,
-      nombre: p.nombre,
-      rubro: p.rubro?.nombre ?? null,
-      precioLista: p.precioLista,
-      online: p.online,
-      activo: p.activo,
-      esInsumo: p.esInsumo,
-      fotoPath: p.fotoPath,
-      stockTotal: vs.reduce((acc, v) => acc + v.stock, 0),
-      bajoMinimo: vs.some((v) => v.stock < v.stockMin),
-    };
-  });
+  return rows.map((p) => ({
+    id: p.id,
+    sku: p.sku,
+    nombre: p.nombre,
+    rubro: p.rubro?.nombre ?? null,
+    presentacion: p.presentacion,
+    stockMinimo: p.stockMinimo,
+    online: p.online,
+    activo: p.activo,
+    ppp: p.ppp,
+    stockDeposito: p.stockLotes.reduce((a, s) => a + s.unidadesEnDeposito, 0),
+    tieneReceta: p.recetas.some((r) => r.vigenteHasta === null),
+  }));
 }
 
 export async function getProducto(id: string) {
   return db.query.productos.findFirst({
     where: eq(productos.id, id),
-    with: {
-      rubro: true,
-      variantes: { orderBy: (v) => [asc(v.nombre)] },
-    },
+    with: { rubro: { columns: { nombre: true } } },
   });
 }
+export type Producto = NonNullable<Awaited<ReturnType<typeof getProducto>>>;
 
-export type ProductoConVariantes = NonNullable<
-  Awaited<ReturnType<typeof getProducto>>
->;
+export type RecetaLineaDetalle = {
+  id: string;
+  insumoId: string;
+  insumoNombre: string;
+  unidad: "kg" | "u";
+  cantidadPorUnidad: string;
+};
+export type RecetaDetalle = {
+  id: string;
+  numero: number;
+  vigenteDesde: string;
+  vigenteHasta: string | null;
+  notas: string | null;
+  lineas: RecetaLineaDetalle[];
+};
 
-/** SKU ya usado por otro producto (validación de unicidad, case-insensitive). */
+async function mapReceta(recetaId: string): Promise<RecetaDetalle | null> {
+  const r = await db.query.recetas.findFirst({
+    where: eq(recetas.id, recetaId),
+    with: {
+      lineas: {
+        with: { insumo: { columns: { nombre: true, unidad: true } } },
+      },
+    },
+  });
+  if (!r) return null;
+  return {
+    id: r.id,
+    numero: r.numero,
+    vigenteDesde: r.vigenteDesde,
+    vigenteHasta: r.vigenteHasta,
+    notas: r.notas,
+    lineas: r.lineas.map((l) => ({
+      id: l.id,
+      insumoId: l.insumoId,
+      insumoNombre: l.insumo.nombre,
+      unidad: (l.insumo.unidad ?? "kg") as "kg" | "u",
+      cantidadPorUnidad: l.cantidadPorUnidad,
+    })),
+  };
+}
+
+/** Receta vigente (vigente_hasta null) de un producto. */
+export async function getRecetaVigente(
+  productoId: string,
+): Promise<RecetaDetalle | null> {
+  const r = await db.query.recetas.findFirst({
+    where: and(
+      eq(recetas.productoId, productoId),
+      isNull(recetas.vigenteHasta),
+    ),
+  });
+  return r ? mapReceta(r.id) : null;
+}
+
+/** Todas las versiones de receta de un producto, con los lotes que la usaron. */
+export async function listVersionesReceta(productoId: string) {
+  const rs = await db.query.recetas.findMany({
+    where: eq(recetas.productoId, productoId),
+    orderBy: (r) => [desc(r.numero)],
+  });
+
+  const out = [];
+  for (const r of rs) {
+    const lotesUsados = await db
+      .select({ lote: sql<string>`count(*)::int` })
+      .from(ordenesProduccion)
+      .where(eq(ordenesProduccion.recetaId, r.id));
+    out.push({
+      id: r.id,
+      numero: r.numero,
+      vigenteDesde: r.vigenteDesde,
+      vigenteHasta: r.vigenteHasta,
+      vigente: r.vigenteHasta === null,
+      notas: r.notas,
+      ordenes: Number(lotesUsados[0]?.lote ?? 0),
+    });
+  }
+  return out;
+}
+
+/** Insumos activos para el editor de recetas. */
+export async function listInsumosActivos() {
+  return db
+    .select({
+      id: productos.id,
+      nombre: productos.nombre,
+      unidad: productos.unidad,
+      ppp: productos.ppp,
+    })
+    .from(productos)
+    .where(and(eq(productos.esInsumo, true), eq(productos.activo, true)))
+    .orderBy(asc(productos.nombre));
+}
+export type InsumoOpcion = Awaited<
+  ReturnType<typeof listInsumosActivos>
+>[number];
+
 export async function skuEnUso(sku: string, exceptId?: string): Promise<boolean> {
   const rows = await db
     .select({ id: productos.id })
@@ -89,112 +164,4 @@ export async function skuEnUso(sku: string, exceptId?: string): Promise<boolean>
     )
     .limit(1);
   return rows.length > 0;
-}
-
-export type VarianteOpcion = {
-  varianteId: string;
-  label: string;
-  stock: number;
-  costoPromedio: string;
-};
-
-/** Variantes activas de productos terminados (esInsumo=false) o insumos (true). */
-export async function listVariantesActivas(
-  esInsumo: boolean,
-): Promise<VarianteOpcion[]> {
-  const rows = await db
-    .select({
-      varianteId: variantes.id,
-      varianteNombre: variantes.nombre,
-      productoNombre: productos.nombre,
-      stock: variantes.stock,
-      costoPromedio: variantes.costoPromedio,
-    })
-    .from(variantes)
-    .innerJoin(productos, eq(variantes.productoId, productos.id))
-    .where(
-      and(
-        eq(variantes.activo, true),
-        eq(productos.activo, true),
-        eq(productos.esInsumo, esInsumo),
-      ),
-    )
-    .orderBy(asc(productos.nombre), asc(variantes.nombre));
-
-  return rows.map((r) => ({
-    varianteId: r.varianteId,
-    label: `${r.productoNombre} — ${r.varianteNombre}`,
-    stock: r.stock,
-    costoPromedio: r.costoPromedio,
-  }));
-}
-
-export async function contarMovimientosDeVariante(
-  varianteId: string,
-): Promise<number> {
-  const [row] = await db
-    .select({ n: count() })
-    .from(movimientoItems)
-    .where(eq(movimientoItems.varianteId, varianteId));
-  return row?.n ?? 0;
-}
-
-export type MovimientoProducto = {
-  itemId: string;
-  varianteId: string;
-  varianteNombre: string;
-  cantidad: number;
-  precioUnit: string;
-  costoUnit: string;
-  movimientoId: string;
-  tipo: TipoMovimiento;
-  fecha: string;
-  notas: string | null;
-  medioPago: string | null;
-  clienteNombre: string | null;
-  proveedorNombre: string | null;
-};
-
-export type FiltrosHistorico =
-  | {
-      tipo?: TipoMovimiento;
-      desde?: string;
-      hasta?: string;
-    }
-  | undefined;
-
-/** Ítems de movimiento del producto (de todas sus variantes), recientes primero. */
-export async function listMovimientosDeProducto(
-  productoId: string,
-  filtros: FiltrosHistorico = {},
-): Promise<MovimientoProducto[]> {
-  const conditions = [eq(variantes.productoId, productoId)];
-  if (filtros.tipo) conditions.push(eq(movimientos.tipo, filtros.tipo));
-  if (filtros.desde) conditions.push(gte(movimientos.fecha, filtros.desde));
-  if (filtros.hasta) conditions.push(lte(movimientos.fecha, filtros.hasta));
-
-  return db
-    .select({
-      itemId: movimientoItems.id,
-      varianteId: movimientoItems.varianteId,
-      varianteNombre: variantes.nombre,
-      cantidad: movimientoItems.cantidad,
-      precioUnit: movimientoItems.precioUnit,
-      costoUnit: movimientoItems.costoUnit,
-      movimientoId: movimientos.id,
-      tipo: movimientos.tipo,
-      fecha: movimientos.fecha,
-      notas: movimientos.notas,
-      medioPago: mediosPago.nombre,
-      clienteNombre: clientes.nombre,
-      proveedorNombre: proveedores.nombre,
-    })
-    .from(movimientoItems)
-    .innerJoin(variantes, eq(movimientoItems.varianteId, variantes.id))
-    .innerJoin(movimientos, eq(movimientoItems.movimientoId, movimientos.id))
-    .leftJoin(mediosPago, eq(movimientos.medioPagoId, mediosPago.id))
-    .leftJoin(clientes, eq(movimientos.clienteId, clientes.id))
-    .leftJoin(proveedores, eq(movimientos.proveedorId, proveedores.id))
-    .where(and(...conditions))
-    .orderBy(desc(movimientos.fecha), desc(movimientos.createdAt));
 }

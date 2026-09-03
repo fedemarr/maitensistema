@@ -7,14 +7,12 @@ import {
   ChartColumnIcon,
   ClipboardListIcon,
   FactoryIcon,
-  LandmarkIcon,
   LayoutDashboardIcon,
   PackageIcon,
   ShapesIcon,
   TruckIcon,
   UserCogIcon,
   UsersIcon,
-  WalletIcon,
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
@@ -22,12 +20,7 @@ import { usePathname } from "next/navigation";
 
 import { cn } from "@/lib/utils";
 
-type Item = {
-  href: string;
-  label: string;
-  icon: LucideIcon;
-  disabled?: boolean;
-};
+type Item = { href: string; label: string; icon: LucideIcon };
 
 const NAV: { seccion: string; items: Item[] }[] = [
   {
@@ -54,13 +47,8 @@ const NAV: { seccion: string; items: Item[] }[] = [
     ],
   },
   {
-    seccion: "Finanzas",
-    items: [
-      { href: "/cc-clientes", label: "CC Clientes", icon: WalletIcon },
-      { href: "/cc-proveedores", label: "CC Proveedores", icon: WalletIcon },
-      { href: "/contabilidad", label: "Contabilidad", icon: LandmarkIcon },
-      { href: "/reportes", label: "Reportes", icon: ChartColumnIcon },
-    ],
+    seccion: "Análisis",
+    items: [{ href: "/reportes", label: "Reportes", icon: ChartColumnIcon }],
   },
   {
     seccion: "Configuración",
@@ -90,21 +78,6 @@ export function SideNav({ onNavigate }: { onNavigate?: () => void }) {
             {grupo.items.map((it) => {
               const Icon = it.icon;
               const active = isActive(pathname, it.href);
-
-              if (it.disabled) {
-                return (
-                  <li key={it.href}>
-                    <span className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-sidebar-foreground/40">
-                      <Icon className="size-4 shrink-0" />
-                      {it.label}
-                      <span className="ml-auto text-[10px] font-medium uppercase">
-                        pronto
-                      </span>
-                    </span>
-                  </li>
-                );
-              }
-
               return (
                 <li key={it.href}>
                   <Link

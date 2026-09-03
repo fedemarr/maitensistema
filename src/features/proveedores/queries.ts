@@ -3,7 +3,7 @@ import "server-only";
 import { and, asc, count, eq, sql } from "drizzle-orm";
 
 import { db } from "@/db";
-import { movimientos, proveedores } from "@/db/schema";
+import { comprasInsumo, proveedores } from "@/db/schema";
 
 export type ProveedorListItem = {
   id: string;
@@ -66,13 +66,13 @@ export async function nombreEnUso(
   return rows.length > 0;
 }
 
-/** Cuenta cuántos movimientos usa a este proveedor. */
+/** Cuenta cuántas compras de insumo referencian a este proveedor. */
 export async function contarMovimientosDeProveedor(
   proveedorId: string,
 ): Promise<number> {
   const [row] = await db
     .select({ n: count() })
-    .from(movimientos)
-    .where(eq(movimientos.proveedorId, proveedorId));
+    .from(comprasInsumo)
+    .where(eq(comprasInsumo.proveedorId, proveedorId));
   return row?.n ?? 0;
 }

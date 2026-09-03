@@ -164,13 +164,15 @@ export const productos = pgTable("productos", {
   online: boolean("online").notNull().default(false),
   esInsumo: boolean("es_insumo").notNull().default(false),
   activo: boolean("activo").notNull().default(true),
-  /** Costo promedio ponderado móvil. */
+  /** Costo promedio ponderado móvil (terminado: por Producción; insumo: por compras). */
   ppp: money("ppp"),
   fotoPath: text("foto_path"),
   // Solo insumos:
   reutilizable: boolean("reutilizable").notNull().default(false),
   vence: boolean("vence").notNull().default(false),
   unidad: unidadInsumo("unidad"),
+  /** Stock del insumo (materializado: Σ compras − consumos de órdenes − bajas). */
+  stockInsumo: qty("stock_insumo"),
   proveedorHabitualId: uuid("proveedor_habitual_id").references(
     () => proveedores.id,
     { onDelete: "set null" },

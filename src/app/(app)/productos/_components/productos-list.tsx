@@ -18,10 +18,8 @@ import { fmtMoney, fmtNumber } from "@/lib/format";
 
 export function ProductosList({
   productos,
-  editable,
 }: {
   productos: ProductoListItem[];
-  editable: boolean;
 }) {
   const [q, setQ] = useState("");
 
@@ -52,8 +50,8 @@ export function ProductosList({
               <TableHead>Producto</TableHead>
               <TableHead>SKU</TableHead>
               <TableHead>Rubro</TableHead>
-              <TableHead className="text-right">Precio</TableHead>
-              <TableHead className="text-right">Stock</TableHead>
+              <TableHead className="text-right">Depósito</TableHead>
+              <TableHead className="text-right">PPP</TableHead>
               <TableHead>Estado</TableHead>
             </TableRow>
           </TableHeader>
@@ -66,7 +64,7 @@ export function ProductosList({
                 >
                   {productos.length === 0
                     ? "Todavía no hay productos."
-                    : "Sin resultados para la búsqueda."}
+                    : "Sin resultados."}
                 </TableCell>
               </TableRow>
             ) : (
@@ -79,25 +77,33 @@ export function ProductosList({
                     >
                       {p.nombre}
                     </Link>
+                    {p.presentacion ? (
+                      <span className="text-xs text-muted-foreground">
+                        {" · "}
+                        {p.presentacion}
+                      </span>
+                    ) : null}
                   </TableCell>
                   <TableCell className="font-mono text-xs">{p.sku}</TableCell>
                   <TableCell>{p.rubro ?? "—"}</TableCell>
                   <TableCell className="text-right tabular-nums">
-                    {fmtMoney(p.precioLista)}
+                    {fmtNumber(p.stockDeposito)}
                   </TableCell>
                   <TableCell className="text-right tabular-nums">
-                    <span className={p.bajoMinimo ? "text-destructive font-semibold" : ""}>
-                      {fmtNumber(p.stockTotal)}
-                    </span>
+                    {fmtMoney(p.ppp)}
                   </TableCell>
                   <TableCell>
-                    <div className="flex gap-1">
+                    <div className="flex flex-wrap gap-1">
                       {p.activo ? (
                         <Badge variant="secondary">Activo</Badge>
                       ) : (
                         <Badge variant="outline">Inactivo</Badge>
                       )}
-                      {p.online ? <Badge variant="outline">Online</Badge> : null}
+                      {!p.tieneReceta ? (
+                        <Badge variant="outline" className="text-destructive">
+                          Sin receta
+                        </Badge>
+                      ) : null}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -106,12 +112,6 @@ export function ProductosList({
           </TableBody>
         </Table>
       </div>
-
-      {editable ? (
-        <p className="text-xs text-muted-foreground">
-          Tocá un producto para ver su ficha y editarlo.
-        </p>
-      ) : null}
     </div>
   );
 }

@@ -10,7 +10,7 @@ export const metadata = { title: "Productos — Maitén" };
 
 export default async function ProductosPage() {
   const user = await requireUser();
-  const productos = await listProductos({ esInsumo: false });
+  const productos = await listProductos();
   const editable = puedeEscribir(user.rol);
 
   return (
@@ -19,7 +19,7 @@ export default async function ProductosPage() {
         <div>
           <h1 className="text-2xl font-semibold">Productos</h1>
           <p className="text-sm text-muted-foreground">
-            {productos.length} {productos.length === 1 ? "producto" : "productos"}
+            Productos terminados y su receta. El precio y el costo no viven acá.
           </p>
         </div>
         {editable ? (
@@ -29,7 +29,7 @@ export default async function ProductosPage() {
         ) : null}
       </div>
 
-      <ProductosList productos={productos} editable={editable} />
+      <ProductosList productos={productos} />
     </div>
   );
 }

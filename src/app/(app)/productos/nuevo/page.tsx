@@ -24,6 +24,9 @@ export default async function NuevoProductoPage() {
           ← Productos
         </Link>
         <h1 className="text-2xl font-semibold">Nuevo producto</h1>
+        <p className="text-sm text-muted-foreground">
+          La receta se carga después, desde la ficha del producto.
+        </p>
       </div>
       <ProductoForm rubros={rubros} />
     </div>

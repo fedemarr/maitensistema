@@ -12,9 +12,23 @@ export function fmtMoney(value: number | string | null | undefined): string {
   return pesos.format(Number.isFinite(n) ? n : 0);
 }
 
-export function fmtNumber(value: number | string | null | undefined): string {
+export function fmtNumber(
+  value: number | string | null | undefined,
+  decimals = 0,
+): string {
   const n = typeof value === "string" ? Number(value) : (value ?? 0);
-  return new Intl.NumberFormat("es-AR").format(Number.isFinite(n) ? n : 0);
+  return new Intl.NumberFormat("es-AR", {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  }).format(Number.isFinite(n) ? n : 0);
+}
+
+/** Cantidad con unidad: kg con 4 decimales, u sin decimales. */
+export function fmtCantidad(
+  value: number | string | null | undefined,
+  unidad: "kg" | "u",
+): string {
+  return `${fmtNumber(value, unidad === "kg" ? 4 : 0)} ${unidad}`;
 }
 
 export function fmtDate(value: string | Date | null | undefined): string {

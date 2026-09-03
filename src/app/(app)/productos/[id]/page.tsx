@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -11,26 +10,16 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
   getProducto,
-  listMovimientosDeProducto,
-  listVariantesActivas,
+  getRecetaVigente,
+  listInsumosActivos,
+  listVersionesReceta,
 } from "@/features/productos/queries";
-import { getFotoUrl } from "@/features/productos/storage";
-import { getRecetaActiva } from "@/features/recetas/queries";
 import { puedeEscribir, requireUser } from "@/lib/auth";
 import { fmtMoney, fmtNumber } from "@/lib/format";
 
 import { ProductoAcciones } from "./_acciones";
-import { HistoricoMovimientos } from "./_components/historico-movimientos";
-import { RecetaEditor } from "./_components/receta-editor";
+import { RecetaTab } from "./_components/receta-tab";
 
 export default async function FichaProductoPage({
   params,
@@ -41,29 +30,13 @@ export default async function FichaProductoPage({
   const user = await requireUser();
   const producto = await getProducto(id);
   if (!producto) notFound();
-  const movimientos = await listMovimientosDeProducto(id);
 
   const editable = puedeEscribir(user.rol);
-  const fotoUrl = await getFotoUrl(producto.fotoPath);
-  const activas = producto.variantes.filter((v) => v.activo);
-
-  // Recetas: solo para productos terminados.
-  const insumos = producto.esInsumo ? [] : await listVariantesActivas(true);
-  const recetas = producto.esInsumo
-    ? []
-    : await Promise.all(
-        activas.map(async (v) => ({
-          varianteId: v.id,
-          varianteNombre: v.nombre,
-          receta: await getRecetaActiva(v.id),
-        })),
-      );
-  const stockTotal = activas.reduce((a, v) => a + v.stock, 0);
-  const bajoMinimo = activas.some((v) => v.stock < v.stockMin);
-  const valorStock = activas.reduce(
-    (a, v) => a + v.stock * Number(v.costoPromedio),
-    0,
-  );
+  const [vigente, versiones, insumos] = await Promise.all([
+    getRecetaVigente(id),
+    listVersionesReceta(id),
+    listInsumosActivos(),
+  ]);
 
   return (
     <div className="mx-auto max-w-4xl space-y-5">
@@ -83,6 +56,9 @@ export default async function FichaProductoPage({
             {producto.rubro ? (
               <Badge variant="secondary">{producto.rubro.nombre}</Badge>
             ) : null}
+            {producto.presentacion ? (
+              <Badge variant="outline">{producto.presentacion}</Badge>
+            ) : null}
             {producto.activo ? (
               <Badge variant="secondary">Activo</Badge>
             ) : (
@@ -99,136 +75,45 @@ export default async function FichaProductoPage({
             >
               Editar
             </Button>
-            <ProductoAcciones id={id} activo={producto.activo} rol={user.rol} />
+            <ProductoAcciones id={id} activo={producto.activo} />
           </div>
         ) : null}
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Card className="sm:col-span-1">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium uppercase text-muted-foreground">
-              Stock total
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p
-              className={`text-4xl font-bold tabular-nums ${
-                bajoMinimo ? "text-destructive" : ""
-              }`}
-            >
-              {fmtNumber(stockTotal)}
-            </p>
-            {bajoMinimo ? (
-              <p className="mt-1 text-xs text-destructive">
-                Hay variantes bajo el mínimo.
-              </p>
-            ) : null}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium uppercase text-muted-foreground">
-              Precio de lista
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-semibold tabular-nums">
-              {fmtMoney(producto.precioLista)}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium uppercase text-muted-foreground">
-              Valor de stock (costo)
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-semibold tabular-nums">
-              {fmtMoney(valorStock)}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {fotoUrl ? (
-        <div className="overflow-hidden rounded-lg border">
-          <Image
-            src={fotoUrl}
-            alt={producto.nombre}
-            width={480}
-            height={480}
-            className="h-auto w-full max-w-sm object-cover"
-            unoptimized
-          />
-        </div>
-      ) : null}
-
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Variantes</CardTitle>
+          <CardTitle className="text-base">Datos</CardTitle>
         </CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nombre</TableHead>
-                  <TableHead>Presentación</TableHead>
-                  <TableHead>Fragancia</TableHead>
-                  <TableHead className="text-right">Stock</TableHead>
-                  <TableHead className="text-right">Mínimo</TableHead>
-                  <TableHead className="text-right">Costo prom.</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {activas.map((v) => (
-                  <TableRow key={v.id}>
-                    <TableCell className="font-medium">{v.nombre}</TableCell>
-                    <TableCell>{v.presentacion ?? "—"}</TableCell>
-                    <TableCell>{v.fragancia ?? "—"}</TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      <span
-                        className={
-                          v.stock < v.stockMin
-                            ? "font-semibold text-destructive"
-                            : ""
-                        }
-                      >
-                        {fmtNumber(v.stock)}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {fmtNumber(v.stockMin)}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {fmtMoney(v.costoPromedio)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+        <CardContent className="grid gap-3 sm:grid-cols-3">
+          <div>
+            <p className="text-xs font-medium uppercase text-muted-foreground">
+              Stock mínimo
+            </p>
+            <p className="text-sm tabular-nums">
+              {fmtNumber(producto.stockMinimo)} u
+            </p>
+          </div>
+          <div>
+            <p className="text-xs font-medium uppercase text-muted-foreground">
+              PPP (costo promedio)
+            </p>
+            <p className="text-sm tabular-nums">{fmtMoney(producto.ppp)}</p>
+          </div>
+          <div>
+            <p className="text-xs font-medium uppercase text-muted-foreground">
+              Rubro
+            </p>
+            <p className="text-sm">{producto.rubro?.nombre ?? "—"}</p>
           </div>
         </CardContent>
       </Card>
 
-      {!producto.esInsumo
-        ? recetas.map((r) => (
-            <RecetaEditor
-              key={r.varianteId}
-              varianteTerminadoId={r.varianteId}
-              varianteNombre={r.varianteNombre}
-              receta={r.receta}
-              insumos={insumos}
-              editable={editable}
-            />
-          ))
-        : null}
-
-      <HistoricoMovimientos
-        movimientos={movimientos}
-        esInsumo={producto.esInsumo}
+      <RecetaTab
+        productoId={id}
+        vigente={vigente}
+        versiones={versiones}
+        insumos={insumos}
+        editable={editable}
       />
     </div>
   );

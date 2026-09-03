@@ -222,6 +222,7 @@ CREATE TABLE "productos" (
 	"reutilizable" boolean DEFAULT false NOT NULL,
 	"vence" boolean DEFAULT false NOT NULL,
 	"unidad" "unidad_insumo",
+	"stock_insumo" numeric(14, 4) DEFAULT '0' NOT NULL,
 	"proveedor_habitual_id" uuid,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
