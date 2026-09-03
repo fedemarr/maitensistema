@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Maitén — Proceso completo: de la receta al EERR · Mockup v1</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-serif}
+:root{--bg:#F5F3EC;--card:#FFFFFF;--border:#E7E3D6;--text:#2E2A23;--muted:#8B8574;--green:#5E7142;--greend:#4C5C35;--line:#EFEDE4;--field:#FCFBF7}
+body{background:var(--bg);color:var(--text)}
+.layout{display:flex;min-height:100vh}
+.side{width:226px;flex-shrink:0;background:var(--bg);border-right:1px solid var(--border);padding:16px 0}
+.brand{padding:4px 22px 18px;display:flex;align-items:baseline;gap:8px}
+.brand b{font-size:20px;font-weight:800}.brand span{font-size:11px;color:var(--muted)}
+.navsec{font-size:10px;font-weight:700;letter-spacing:.12em;color:var(--muted);padding:14px 22px 6px;text-transform:uppercase}
+.nav{display:flex;flex-direction:column;gap:1px;padding:0 12px}
+.nav a{display:flex;align-items:center;gap:11px;padding:8px 12px;border-radius:8px;color:#4a463d;text-decoration:none;font-size:13.5px;font-weight:500;cursor:pointer}
+.nav a .ic{width:18px;height:18px;flex-shrink:0;color:#8a8474}
+.nav a.on{background:var(--green);color:#fff;font-weight:600}.nav a.on .ic{color:#fff}
+.main{flex-grow:1;display:flex;flex-direction:column;min-width:0}
+.top{display:flex;justify-content:flex-end;align-items:center;gap:14px;padding:12px 28px}
+.top .who{font-size:13.5px;font-weight:600}
+.chip-adm{font-size:11px;font-weight:700;color:#6E6857;background:#ECE9DF;border-radius:20px;padding:3px 10px}
+.body{padding:0 28px 60px}
+h1{font-size:25px;font-weight:800;margin:0 0 3px}
+.sub{color:var(--muted);font-size:13.5px;margin:0 0 14px}
+/* stepper */
+.stepper{display:flex;gap:0;margin:6px 0 20px;background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.step{flex:1;display:flex;align-items:center;gap:10px;padding:11px 14px;cursor:pointer;border-right:1px solid var(--line);font-size:12.5px;color:var(--muted);font-weight:600}
+.step:last-child{border-right:none}
+.step .n{width:24px;height:24px;border-radius:50%;background:#ECE9DF;color:#6E6857;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0}
+.step:hover{background:#FBFAF5}
+.step.act{background:var(--green);color:#fff}.step.act .n{background:#fff;color:var(--green)}
+.step.done .n{background:#DCE5CC;color:var(--green)}
+.panel{display:none}.panel.act{display:block}
+/* banners */
+.banner{border-radius:9px;padding:10px 14px;font-size:12.8px;margin-bottom:14px;display:flex;gap:10px;align-items:flex-start;line-height:1.5}
+.banner.info{background:#EEF2E6;border:1px solid #D7E1C6;color:#4a5a34}
+.banner.rule{background:#F6F1E6;border:1px solid #E7DCC4;color:#6b6350}
+.banner.warn{background:#FBECE9;border:1px solid #EFCAC4;color:#8a3a33}
+/* cards & kpis */
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:13px 16px}
+.kpi .k{font-size:10.5px;font-weight:700;letter-spacing:.09em;color:var(--muted);text-transform:uppercase}
+.kpi .v{font-size:24px;font-weight:800;margin:6px 0 2px}.kpi .v.green{color:var(--green)}.kpi .v.red{color:#B0463F}
+.kpi .d{font-size:11.5px;color:var(--muted)}
+.card{background:var(--card);border:1px solid var(--border);border-radius:13px;overflow:hidden;margin-bottom:14px}
+.ptop{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 18px;flex-wrap:wrap}
+.ptop h2{font-size:15.5px;font-weight:700;margin:0}
+.tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+select.filter,input.filter{font-size:13px;color:#5a5648;border:1px solid var(--border);border-radius:9px;padding:8px 11px;background:var(--field)}
+table{width:100%;border-collapse:collapse}
+thead th{text-align:left;font-size:11px;font-weight:700;color:#5a5648;text-transform:uppercase;letter-spacing:.03em;padding:9px 16px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:#FBFAF5;white-space:nowrap}
+thead th.r,tbody td.r,tfoot td.r{text-align:right}
+tbody td{padding:10px 16px;border-bottom:1px solid var(--line);font-size:13px}
+tbody tr:last-child td{border-bottom:none}
+.pname{font-weight:600}
+.code{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#6E6857}
+.num{font-variant-numeric:tabular-nums;font-weight:600}
+.muted{color:var(--muted)}
+.pill{display:inline-block;font-size:11.5px;font-weight:700;border-radius:20px;padding:3px 11px}
+.pill.ok{background:#E9EEDF;color:var(--green)}.pill.low{background:#F7ECD6;color:#9A6B18}.pill.no{background:#F5DDDB;color:#B0463F}
+.tp{display:inline-block;font-size:11.5px;font-weight:700;border-radius:20px;padding:3px 10px}
+.tp.venta{background:#E9EEDF;color:var(--green)}.tp.entra{background:#E4EEF0;color:#3C6E76}.tp.gasto{background:#F7ECD6;color:#9A6B18}.tp.mov{background:#ECE9DF;color:#6E6857}
+.pos{color:var(--green);font-weight:700}.neg{color:#B0463F;font-weight:700}
+.dirin td:first-child{box-shadow:inset 3px 0 0 #7FA9B0}.dirout td:first-child{box-shadow:inset 3px 0 0 #D8B7B4}
+.btn{border:1px solid var(--border);border-radius:9px;padding:9px 15px;font-size:13px;font-weight:600;cursor:pointer;background:#fff;color:var(--text)}
+.btn:hover{background:#F3F1E8}
+.btn.g{background:var(--green);border-color:var(--green);color:#fff}.btn.g:hover{background:var(--greend)}
+.btn.sm{padding:5px 10px;font-size:12px}
+.foot-note{font-size:12px;color:var(--muted);padding:10px 16px}
+.seg{display:inline-flex;border:1px solid var(--border);border-radius:9px;overflow:hidden}
+.seg span{padding:7px 14px;font-size:12.5px;font-weight:600;cursor:pointer;color:var(--muted)}
+.seg span.act{background:var(--green);color:#fff}
+/* ficha producto */
+.ficha{display:grid;grid-template-columns:300px 1fr;gap:14px}
+.fdat{padding:16px 18px}
+.fdat .row{display:flex;justify-content:space-between;font-size:13px;padding:7px 0;border-bottom:1px solid var(--line)}
+.fdat .row:last-child{border-bottom:none}
+.fdat .row b{font-weight:600}
+.subtabs{display:flex;gap:6px;padding:12px 18px 0}
+.stab{padding:6px 14px;border-radius:16px;font-size:12.5px;font-weight:700;cursor:pointer;background:#ECE9DF;color:#6E6857}
+.stab.act{background:var(--green);color:#fff}
+/* orden produccion */
+.form{padding:14px 18px 4px}
+.row4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:12px}
+.f{display:flex;flex-direction:column;gap:5px}
+.f label{font-size:12px;font-weight:600;color:#5a5648}.f label .req{color:#B0463F}
+.f input,.f select{font-size:13.5px;color:var(--text);border:1px solid var(--border);border-radius:9px;padding:9px 11px;background:var(--field);width:100%}
+.f input:focus,.f select:focus{outline:none;border-color:var(--green)}
+#tbOrden td,#tbCierre td,#tbPlan td,#tbOrdenes td,#tbStock td:not(:first-child),#tbConsig td,#tbConsig th,#tbMovs td,.eerr td{white-space:nowrap}
+input.cell{width:92px;font-size:12.5px;border:1px solid var(--border);border-radius:7px;padding:5px 7px;text-align:right;background:var(--field)}
+input.cell:focus{outline:none;border-color:var(--green)}
+.resumen{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;padding:12px 18px}
+.rs{background:#F4F6EE;border:1px solid #DEE6CE;border-radius:10px;padding:10px 12px}
+.rs .k{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--green)}
+.rs .v{font-size:17px;font-weight:800;margin-top:4px}
+.hidden{display:none!important}
+/* EERR */
+.eerr td,.eerr th{padding:7px 14px;font-size:12.8px}
+.eerr tr.h td{background:#FBFAF5;font-weight:800;font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;color:#5a5648;padding-top:10px}
+.eerr tr.t td{font-weight:800;border-top:1px solid var(--border)}
+.eerr tr.ebit td{background:#EEF2E6;font-weight:800;font-size:13.5px}
+.eerr td.in{padding-left:28px}
+.eerr td.tot{background:#FBFAF5;font-weight:700}
+/* modal */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(40,36,28,.5);z-index:50;align-items:flex-start;justify-content:center;padding:34px 16px;overflow:auto}
+.modal-bg.open{display:flex}
+.modal{background:#fff;border-radius:16px;max-width:580px;width:100%;box-shadow:0 18px 50px rgba(40,36,28,.28);overflow:hidden}
+.m-head{padding:20px 22px 4px;display:flex;justify-content:space-between;align-items:flex-start}
+.m-head h3{font-size:18px;font-weight:800;margin:0}.m-head p{font-size:12.5px;color:var(--muted);margin:4px 0 0}
+.m-head .x{background:none;border:none;font-size:20px;color:var(--muted);cursor:pointer;line-height:1}
+.mform{padding:14px 22px 4px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:13px;margin-bottom:13px}
+.impact{margin:8px 22px 4px;background:#F4F6EE;border:1px solid #DEE6CE;border-radius:12px;padding:14px 16px}
+.impact .t{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--green);margin-bottom:9px}
+.irow{display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:4px 0}
+.irow b{font-weight:700}.irow.tot{border-top:1px dashed #CDD7BB;margin-top:6px;padding-top:9px}
+.tag{font-size:11px;font-weight:700;border-radius:20px;padding:2px 9px}
+.tag.ing{background:#E9EEDF;color:var(--green)}.tag.gas{background:#F7ECD6;color:#9A6B18}.tag.mv{background:#ECE9DF;color:#6E6857}
+.m-foot{display:flex;justify-content:flex-end;gap:10px;padding:16px 22px 22px}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--greend);color:#fff;font-size:13.5px;font-weight:600;padding:12px 20px;border-radius:10px;box-shadow:0 8px 24px rgba(40,36,28,.3);opacity:0;pointer-events:none;transition:opacity .25s;z-index:60}
+.toast.show{opacity:1}
+.next{display:flex;justify-content:flex-end;margin-top:6px}
+@media(max-width:1100px){.side{display:none}.kpis{grid-template-columns:repeat(2,1fr)}.ficha{grid-template-columns:1fr}.row4{grid-template-columns:1fr 1fr}.resumen{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="side">
+    <div class="brand"><b>Maitén</b><span>Sistema de gestión</span></div>
+    <div class="navsec">Operación</div>
+    <nav class="nav">
+      <a><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 4l9 6.5"/><path d="M5 9.5V20h14V9.5"/></svg>Inicio</a>
+      <a id="navMovimientos" onclick="goStep(5)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h13l-3-3"/><path d="M20 16H7l3 3"/></svg>Movimientos</a>
+      <a id="navProduccion" onclick="goStep(3)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V9l5-2 5 2 5-2v13z"/><path d="M9 7v13"/><path d="M14 9v11"/></svg>Producción</a>
+      <a id="navStock" onclick="goStep(4)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 3 7.5 12 12l9-4.5z"/><path d="M3 12l9 4.5L21 12"/><path d="M3 16.5 12 21l9-4.5"/></svg>Stock</a>
+      <a id="navConsig" onclick="goConsig()"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="12" height="16" rx="2"/><path d="M9 4V3h6v1"/><path d="M9 9h6M9 13h6"/></svg>Consignaciones</a>
+    </nav>
+    <div class="navsec">Registros</div>
+    <nav class="nav">
+      <a id="navProductos" onclick="goStep(1)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.5 12 4l8 4.5v7L12 20l-8-4.5z"/><path d="M4 8.5 12 13l8-4.5M12 13v7"/></svg>Productos</a>
+      <a id="navInsumos" onclick="goStep(2)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6v5l3 9a2 2 0 0 1-2 3H8a2 2 0 0 1-2-3l3-9z"/><path d="M9 8h6"/></svg>Insumos</a>
+      <a id="navClientes" onclick="goClientes()"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"/></svg>Clientes</a>
+      <a><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h11v8H3z"/><path d="M14 10h4l3 3v2h-7z"/><circle cx="7" cy="18" r="1.6"/><circle cx="17" cy="18" r="1.6"/></svg>Proveedores</a>
+    </nav>
+    <div class="navsec">Finanzas</div>
+    <nav class="nav">
+      <a><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18"/></svg>CC Clientes</a>
+      <a><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 14h18"/></svg>CC Proveedores</a>
+      <a><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9 12 4l8 5"/><path d="M5 9v9h14V9"/><path d="M4 20h16"/></svg>Contabilidad</a>
+      <a id="navReportes" onclick="goStep(6)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V10M12 20V4M19 20v-7"/></svg>Reportes</a>
+    </nav>
+    <div class="navsec">Configuración</div>
+    <nav class="nav">
+      <a><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>Rubros</a>
+      <a><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3 2.5-5 6-5s6 2 6 5"/><path d="M16 5a3 3 0 0 1 0 6M21 20c0-2.5-1.5-4.3-4-4.8"/></svg>Usuarios</a>
+    </nav>
+  </aside>
+
+  <div class="main">
+    <div class="top"><span class="who">Federico</span><span class="chip-adm">Admin</span><button class="btn">Salir</button></div>
+    <div class="body">
+      <h1 id="h1">Proceso completo</h1>
+      <p class="sub" id="sub">De la receta al EERR: cada paso alimenta al siguiente. Lo que hagas en un paso se refleja en los que vienen.</p>
+
+      <div class="stepper">
+        <div class="step act" onclick="goStep(1)"><span class="n">1</span>Producto y receta</div>
+        <div class="step" onclick="goStep(2)"><span class="n">2</span>Insumos y costo</div>
+        <div class="step" onclick="goStep(3)"><span class="n">3</span>Producción (lote)</div>
+        <div class="step" onclick="goStep(4)"><span class="n">4</span>Stock en vivo</div>
+        <div class="step" onclick="goStep(5)"><span class="n">5</span>Salidas con concepto</div>
+        <div class="step" onclick="goStep(6)"><span class="n">6</span>EERR e indicadores</div>
+      </div>
+
+      <!-- ===== PASO 1: PRODUCTO Y RECETA ===== -->
+      <div class="panel act" id="p1">
+        <div class="banner rule">📐 <span><b>La receta vive en la ficha del producto y es físico puro.</b> Cada línea es un insumo con su cantidad estándar por unidad terminada (viene de FÓRMULA + ESTÁNDARES del Excel). <b>Nunca lleva precio</b>: el precio vive en Insumos. Es versionada con vigencia — cada lote queda atado a la receta vigente en su fecha.</span></div>
+        <div class="card">
+          <div class="ptop">
+            <h2>Ficha del producto</h2>
+            <div class="seg"><span class="act" onclick="verProd('MAI-SH-AR-250',this)">Shampoo</span><span onclick="verProd('MAI-CR-CAL-060',this)">Crema</span></div>
+          </div>
+          <div class="ficha">
+            <div class="fdat" id="fdat"></div>
+            <div>
+              <div class="subtabs"><span class="stab act" onclick="verSub('receta',this)">Receta y estándares</span><span class="stab" onclick="verSub('versiones',this)">Versiones</span></div>
+              <div id="subReceta">
+                <table style="margin-top:10px">
+                  <thead><tr><th>Insumo</th><th>Unidad</th><th class="r">Cantidad estándar / unidad terminada</th></tr></thead>
+                  <tbody id="tbReceta"></tbody>
+                </table>
+                <div class="foot-note" id="recetaNote"></div>
+              </div>
+              <div id="subVersiones" class="hidden">
+                <div class="ptop" style="padding:12px 18px 4px"><span class="muted" style="font-size:12.5px">Cada lote queda atado a la versión vigente en su fecha. Una versión nueva no toca los lotes viejos.</span><button class="btn sm">＋ Nueva versión de receta</button></div>
+                <table style="margin-top:6px">
+                  <thead><tr><th>Versión</th><th>Vigente desde</th><th>Vigente hasta</th><th>Estado</th><th>Lotes fabricados con esta versión</th></tr></thead>
+                  <tbody id="tbVersiones"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="next"><button class="btn g" onclick="goStep(2)">Siguiente: Insumos y costo →</button></div>
+      </div>
+
+      <!-- ===== PASO 2: INSUMOS ===== -->
+      <div class="panel" id="p2">
+        <div class="banner rule">💰 <span><b>El precio vive acá, en cada insumo</b>, como costo promedio ponderado (PPP) alimentado por las compras — el "componente monetario resultante". <b>Cada insumo dice si es reutilizable entre lotes.</b> Los naturales vencen o se secan (no reutilizables): su sobrante se da de baja al cerrar el lote y va al EERR como <b>pérdida del período</b>. Los reutilizables (glicerina, conservantes, envases, cajas, etiquetas) quedan en stock para el próximo lote.</span></div>
+        <div class="kpis">
+          <div class="kpi"><div class="k">Insumos activos</div><div class="v" id="kIns">—</div><div class="d"><span id="kInsReut">—</span> reutilizables · <span id="kInsNo">—</span> no reutilizables</div></div>
+          <div class="kpi"><div class="k">Stock de insumos (valor PPP)</div><div class="v green" id="kInsVal">—</div><div class="d">Disponible para el próximo lote</div></div>
+          <div class="kpi"><div class="k">Aprovechamiento · <span id="kLoteA">—</span></div><div class="v" id="kAprov">—</div><div class="d">$ consumido / $ comprado (materia prima)</div></div>
+          <div class="kpi"><div class="k">Pérdida por sobrantes · <span id="kLoteP">—</span></div><div class="v red" id="kPerd">—</div><div class="d">No reutilizables dados de baja → EERR</div></div>
+        </div>
+        <div class="card">
+          <div class="ptop"><h2>Insumos — materia prima y envases</h2><div class="tools"><input class="filter" placeholder="Buscar insumo…" oninput="renderInsumos(this.value)"><select class="filter" id="fReut" onchange="renderInsumos()"><option value="">Todos</option><option value="1">Solo reutilizables</option><option value="0">Solo no reutilizables</option></select><button class="btn" onclick="openBaja()">Dar de baja</button><button class="btn g" onclick="openCompra()">Registrar compra</button></div></div>
+          <table>
+            <thead><tr><th>Insumo</th><th>Unidad</th><th>Reutilizable</th><th class="r">Stock actual</th><th class="r">Costo PPP</th><th class="r">Valor stock</th><th>Lo usa</th></tr></thead>
+            <tbody id="tbInsumos"></tbody>
+          </table>
+          <div class="foot-note">Stock = compras − consumos de las órdenes − bajas. Los no reutilizables muestran 0 después de cerrar el lote: su sobrante ya se dio de baja.</div>
+        </div>
+        <div class="card">
+          <div class="ptop"><h2>Conciliación de insumos por lote</h2><div class="tools"><span class="muted" style="font-size:12.5px">Comprado para el lote vs. consumido por la orden. Acá se ve la eficiencia de la compra.</span><select class="filter" id="fLote" onchange="renderInsumos()"></select></div></div>
+          <table>
+            <thead><tr><th>Insumo</th><th class="r">Comprado</th><th class="r">Consumido</th><th class="r">Sobrante</th><th>Reutilizable</th><th>Destino del sobrante</th><th class="r">Pérdida $</th></tr></thead>
+            <tbody id="tbConc"></tbody>
+          </table>
+        </div>
+        <div class="card">
+          <div class="ptop"><h2>Bajas de insumos (pérdidas)</h2><span class="muted" style="font-size:12.5px">Cada baja impacta en el EERR del mes: "Pérdida por insumos (vencidos / no reutilizables)".</span></div>
+          <table>
+            <thead><tr><th>Fecha</th><th>Insumo</th><th class="r">Cantidad</th><th>Motivo</th><th>Lote</th><th class="r">Pérdida $</th></tr></thead>
+            <tbody id="tbPerd"></tbody>
+          </table>
+        </div>
+        <div class="next"><button class="btn g" onclick="goStep(3)">Siguiente: Producción →</button></div>
+      </div>
+
+      <!-- ===== PASO 3: PRODUCCION ===== -->
+      <div class="panel" id="p3">
+        <div class="banner info">🏭 <span><b>La orden de producción consume la receta, no es dueña de ella.</b> Elegís producto, lote y cantidad; el sistema explota la receta (estándar × cantidad = consumo teórico), vos cargás el consumo real, y calcula solo los <b>desvíos</b> (real − estándar, valuados a PPP) y el <b>costo del lote</b> (materia prima + lo que cobra la fábrica por el lote). Al cerrar la orden: se descuenta el consumo del <b>stock de insumos</b>, los sobrantes no reutilizables se dan de baja (pérdida al período), y se genera la <b>entrada de stock</b> del producto terminado con ese costo — el puente Producción → Stock.</span></div>
+        <div class="flow">
+          <div class="fstep">1 · Planificar la orden → el sistema chequea si alcanzan los insumos</div>
+          <div class="fstep">2 · Comprar lo que falta (paso 2) y fabricar</div>
+          <div class="fstep">3 · Cerrar la orden: consumo real + unidades obtenidas → stock</div>
+        </div>
+        <div class="card">
+          <div class="ptop"><h2>Nueva orden de producción — planificar</h2><span class="muted" style="font-size:12.5px">Una orden planificada es una intención: todavía no mueve stock.</span></div>
+          <div class="form">
+            <div class="row4">
+              <div class="f"><label>Producto <span class="req">*</span></label><select id="oProd" onchange="renderOrden()"></select></div>
+              <div class="f"><label>Lote <span class="req">*</span></label><select id="oLote"></select></div>
+              <div class="f"><label>Cantidad a fabricar <span class="req">*</span></label><input type="number" id="oCant" value="400" min="1" oninput="renderOrden()"></div>
+              <div class="f"><label>Fecha prevista <span class="req">*</span></label><input type="date" id="oFecha"></div>
+            </div>
+            <div class="row4">
+              <div class="f" style="grid-column:span 2"><label>Costo de fabricación del lote ($) <span class="req">*</span> <span class="muted" style="font-weight:400" id="oFabVig"></span></label><input type="number" id="oFab" oninput="renderOrden()"><span class="muted" style="font-size:11.5px" id="oFabHist"></span></div>
+              <div class="f" style="grid-column:span 2"><label>Fabricación por unidad (estimada)</label><input type="text" id="oFabU" readonly style="background:#F3F1E8"></div>
+            </div>
+          </div>
+          <table>
+            <thead><tr><th>Insumo</th><th class="r">Estándar / u</th><th class="r">Consumo teórico</th><th class="r">Disponible en stock</th><th>¿Alcanza?</th></tr></thead>
+            <tbody id="tbPlan"></tbody>
+          </table>
+          <div class="resumen" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+            <div class="rs"><div class="k">Insumos cubiertos</div><div class="v" id="pOk">—</div></div>
+            <div class="rs"><div class="k">Insumos faltantes</div><div class="v" id="pFalta">—</div></div>
+            <div class="rs"><div class="k">Costo estándar estimado (receta × PPP)</div><div class="v" id="pCosto">—</div></div>
+          </div>
+          <div class="m-foot" style="padding-top:4px"><button class="btn" id="btnFalta" onclick="comprarFaltante()">Comprar lo que falta →</button><button class="btn g" onclick="crearOrden()">Crear orden planificada</button></div>
+        </div>
+        <div class="card">
+          <div class="ptop"><h2>Órdenes de producción</h2><span class="muted" style="font-size:12.5px">Solo una orden <b>cerrada</b> mueve stock. Las planificadas se completan cuando terminó la fabricación.</span></div>
+          <table>
+            <thead><tr><th>Fecha</th><th>Producto</th><th>Lote</th><th>Estado</th><th class="r">Planificadas</th><th class="r">Obtenidas</th><th class="r">Rendimiento</th><th class="r">Costo unit.</th><th class="r">Desvío MP</th><th class="r">Desvío fabr.</th><th></th></tr></thead>
+            <tbody id="tbOrdenes"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ===== PASO 4: STOCK ===== -->
+      <div class="panel" id="p4">
+        <div class="banner rule">🔑 <span><b>Regla de oro:</b> el stock siempre es <b>entradas − salidas</b>. Nada lo mueve por fuera del registro de movimientos. El stock se lleva <b>por lote</b> (trazabilidad): cada salida se atribuye sola al lote más viejo (FIFO). La mercadería <b>en consignación</b> sigue siendo tuya: se muestra aparte, con saldo por cliente. Las <b>entradas</b> de producto terminado las genera solo Producción (paso 3), con el costo que calcula el sistema; los ajustes de inventario se valúan al PPP vigente — no hay ingreso manual con costo a mano.</span></div>
+        <div class="kpis">
+          <div class="kpi"><div class="k">En depósito</div><div class="v" id="kDep">—</div><div class="d">Unidades disponibles para vender</div></div>
+          <div class="kpi"><div class="k">En consignación</div><div class="v" id="kCons">—</div><div class="d">Entregadas a clientes, todavía tuyas</div></div>
+          <div class="kpi"><div class="k">Bajo mínimo / sin stock</div><div class="v" id="kBajo">—</div><div class="d">Productos que hay que reponer</div></div>
+          <div class="kpi"><div class="k">Valor del inventario</div><div class="v green" id="kVal">—</div><div class="d">Stock total propio × PPP</div></div>
+        </div>
+        <div class="card">
+          <div class="ptop"><h2>Stock por producto y lote</h2><div class="tools"><button class="btn g" onclick="openMov()">Nuevo movimiento</button></div></div>
+          <table>
+            <thead><tr><th>Producto</th><th>Código</th><th class="r">En depósito</th><th class="r">En consignación</th><th class="r">Total propio</th><th class="r">Mínimo <span class="muted" style="font-weight:400;text-transform:none">(editable)</span></th><th>Estado</th><th class="r">PPP</th><th class="r">Valor a costo</th></tr></thead>
+            <tbody id="tbStock"></tbody>
+          </table>
+          <div class="foot-note">Debajo de cada producto, el desglose por lote de lo que está en depósito. El <b>mínimo</b> se parametriza acá mismo, por producto; estado y mínimo se evalúan sobre lo disponible en depósito.</div>
+        </div>
+        <div class="banner rule" style="margin-top:2px">📦 <span>La mercadería <b>en consignación</b> se gestiona en su propio módulo (menú <b>Consignaciones</b>): saldo por cliente, vencimiento, venta desde consignación y devolución. Acá solo se ve el resumen.</span></div>
+        <div class="next"><button class="btn g" onclick="goStep(5)">Siguiente: Salidas con concepto →</button></div>
+      </div>
+
+      <!-- ===== PASO 5: MOVIMIENTOS ===== -->
+      <div class="panel" id="p5">
+        <div class="banner info">🧭 <span><b>El concepto manda.</b> Cada salida define si descuenta stock y cómo impacta en el EERR: <b>Venta</b> (de depósito o desde consignación) → ingreso y CMV · <b>Canje / Regalo / Presentación / Rotura…</b> → costo de salida no-venta · <b>Co-branding</b> → acción comercial a costo · <b>Consignación</b> → pasa a saldo del cliente, no descuenta. Toda salida puede llevar <b>cliente</b> (desplegable del módulo Clientes, con alta rápida); en consignación es obligatorio. El canal (online / físico) queda pendiente de definir con las socias.</span></div>
+        <div class="card">
+          <div class="ptop"><h2>Historial de movimientos</h2>
+            <div class="tools">
+              <select class="filter" id="fTipo" onchange="renderMovs()"><option value="">Todos los tipos</option><option value="entrada">Solo entradas</option><option value="salida">Solo salidas</option></select>
+              <select class="filter" id="fProd" onchange="renderMovs()"><option value="">Todos los productos</option><option value="MAI-SH-AR-250">Shampoo</option><option value="MAI-CR-CAL-060">Crema</option></select>
+              <button class="btn g" onclick="openMov()">Nuevo movimiento</button>
+            </div></div>
+          <table>
+            <thead><tr><th>Fecha</th><th>Producto</th><th>Tipo</th><th>Cliente / destino</th><th>Lote</th><th class="r">Unidades</th><th class="r">Ingreso ($)</th><th class="r">Costo ($)</th></tr></thead>
+            <tbody id="tbMovs"></tbody>
+          </table>
+          <div class="foot-note">* Consignación: la mercadería pasa al saldo del cliente pero sigue siendo stock propio; descuenta recién cuando se registra la venta desde consignación.</div>
+        </div>
+        <div class="next"><button class="btn g" onclick="goStep(6)">Siguiente: EERR e indicadores →</button></div>
+      </div>
+
+      <!-- ===== CONSIGNACIONES (módulo propio, se abre desde el menú) ===== -->
+      <div class="panel" id="pCons">
+        <div class="banner info">📦 <span><b>Mercadería entregada a clientes que se cobra cuando venden.</b> Las consignaciones se crean desde Movimientos (tipo Consignación) y se gestionan acá: cuando el cliente vende, registrás la <b>venta desde consignación</b> (recién ahí descuenta stock y genera ingreso y CMV); lo que no vendió, vuelve con <b>devolución</b>. Cada una lleva su lote (trazabilidad) y una fecha de vencimiento para rendir cuentas.</span></div>
+        <div class="kpis" id="csKpis"></div>
+        <div class="card">
+          <div class="ptop"><h2>Consignaciones</h2><div class="tools"><select class="filter" id="fCsEstado" onchange="renderConsig()"><option value="">Todas</option><option>Abierta</option><option>Parcial</option><option>Vencida</option><option>Cerrada</option></select><button class="btn g" onclick="openMov('Consignación')">Nueva consignación</button></div></div>
+          <div style="overflow-x:auto"><table>
+            <thead><tr><th>Cliente</th><th>Producto</th><th>Lote</th><th class="r">Entregadas</th><th class="r">Vendidas</th><th class="r">Devueltas</th><th class="r">Pendientes</th><th>Fecha</th><th>Vence</th><th>Estado</th><th>Acciones</th></tr></thead>
+            <tbody id="tbConsig"></tbody>
+          </table></div>
+          <div class="foot-note">Estado: <b>Abierta</b> (nada vendido aún) · <b>Parcial</b> (vendió o devolvió parte) · <b>Vencida</b> (pasó la fecha y quedan pendientes) · <b>Cerrada</b> (sin pendientes). El vencimiento se propone a 60 días y se puede cambiar.</div>
+        </div>
+      </div>
+
+      <!-- ===== CLIENTES (módulo de registro, se abre desde el menú) ===== -->
+      <div class="panel" id="pCli">
+        <div class="banner info">👥 <span><b>Clientes es un registro maestro</b>: lo que se carga acá alimenta los movimientos (desplegable con alta rápida), la consignación (saldo por cliente) y, a futuro, la cuenta corriente y la lista de precios por tipo. La ficha muestra lo que el resto del sistema ya sabe de cada cliente.</span></div>
+        <div id="cliLista">
+          <div class="card">
+            <div class="ptop"><h2>Clientes <span class="muted" style="font-weight:400;font-size:13px" id="cliCount"></span></h2><div class="tools"><input class="filter" placeholder="Buscar por nombre…" oninput="renderClientes(this.value)"><select class="filter" id="fCliTipo" onchange="renderClientes()"><option value="">Todos los tipos</option></select><button class="btn g" onclick="openCliente()">Nuevo cliente</button></div></div>
+            <table>
+              <thead><tr><th>Nombre</th><th>Tipo</th><th>Email</th><th>Teléfono</th><th class="r">Compró (u)</th><th class="r">Ingresos</th><th class="r">En consignación</th><th>Estado</th></tr></thead>
+              <tbody id="tbClientes"></tbody>
+            </table>
+            <div class="foot-note">Tocá un cliente para ver su ficha. "Compró", "Ingresos" y "En consignación" salen de Movimientos y Consignaciones — no se cargan acá.</div>
+          </div>
+        </div>
+        <div id="cliFicha" class="hidden">
+          <div style="margin-bottom:10px"><a class="muted" style="cursor:pointer;font-size:13px" onclick="verLista()">← Clientes</a></div>
+          <div class="ficha" style="grid-template-columns:320px 1fr">
+            <div>
+              <div class="card"><div class="ptop"><h2 id="cfNombre">—</h2></div><div class="fdat" id="cfDatos" style="padding-top:0"></div><div class="m-foot" style="padding:8px 18px 16px"><button class="btn sm">Editar ficha</button></div></div>
+            </div>
+            <div>
+              <div class="kpis" id="cfKpis" style="margin-bottom:12px"></div>
+              <div class="card"><div class="ptop"><h2>Mercadería en consignación</h2></div><table><thead><tr><th>Fecha</th><th>Producto</th><th>Lote</th><th class="r">Entregadas</th><th class="r">Vendidas</th><th class="r">Devueltas</th><th class="r">Pendientes</th></tr></thead><tbody id="cfConsig"></tbody></table></div>
+              <div class="card"><div class="ptop"><h2>Movimientos con este cliente</h2></div><table><thead><tr><th>Fecha</th><th>Tipo</th><th>Producto</th><th>Lote</th><th class="r">Unidades</th><th class="r">Ingreso</th><th>Medio de pago</th></tr></thead><tbody id="cfMovs"></tbody></table></div>
+              <div class="banner rule">💳 <span><b>Cuenta corriente:</b> las ventas con medio de pago "Crédito (cta. cte.)" van a formar el saldo del cliente en el módulo CC Clientes. Se diseña en el próximo paso.</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== PASO 6: EERR ===== -->
+      <div class="panel" id="p6">
+        <div class="banner info">📊 <span><b>Nada se carga a mano acá: todo sale de los pasos anteriores.</b> Ingresos y CMV de las ventas, desvíos de las órdenes cerradas, pérdidas de insumos, co-branding y salidas no-venta por su tipo. <b>Los costos fijos no están</b>: van a entrar cuando exista el módulo para asignarlos — por eso el resultado que se muestra es <b>antes de costos fijos</b>.</span></div>
+        <div class="ptop" style="padding:0 0 12px"><h2 style="font-size:16px">Reporte económico · <span id="rpMesLbl"></span></h2><div class="tools"><span class="muted" style="font-size:12.5px">Período:</span><select class="filter" id="rpMes" onchange="renderReporte()"></select></div></div>
+        <div class="kpis" id="rpKpis"></div>
+        <div class="card">
+          <div class="ptop"><h2>Por producto</h2><span class="muted" style="font-size:12.5px">Stock = en depósito hoy · Meses de stock = stock ÷ unidades vendidas en el período · % consumido = vendidas ÷ (vendidas + stock)</span></div>
+          <table><thead><tr><th>Producto</th><th class="r">Unid.</th><th class="r">Ingresos</th><th class="r">CMV</th><th class="r">Bruto</th><th class="r">Margen</th><th class="r">Stock</th><th class="r">Meses stock</th><th class="r">% consumido</th></tr></thead><tbody id="rpProd"></tbody></table>
+        </div>
+        <div class="ficha" style="grid-template-columns:1fr 1fr;gap:14px">
+          <div class="card" style="margin:0">
+            <div class="ptop"><h2>Desglose por tipo de movimiento</h2></div>
+            <table><thead><tr><th>Tipo</th><th class="r">Unidades</th><th class="r">Valorizado a costo</th></tr></thead><tbody id="rpTipos"></tbody></table>
+          </div>
+          <div class="card" style="margin:0">
+            <div class="ptop"><h2>Del resultado bruto al resultado antes de costos fijos</h2></div>
+            <table class="eerr"><tbody id="rpCascada"></tbody></table>
+            <div class="banner rule" style="margin:10px 16px 14px">🧱 <span><b>Costos fijos: pendiente.</b> Cuando exista el módulo para cargarlos por mes, se restan acá y este resultado pasa a ser el EBIT.</span></div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:14px">
+          <div class="ptop"><h2>Evolución mensual</h2><span class="muted" style="font-size:12.5px">La misma información, mes a mes, para comparar. Sin costos fijos.</span></div>
+          <div style="overflow-x:auto"><table class="eerr"><thead id="eerrHead"></thead><tbody id="eerrBody"></tbody></table></div>
+        </div>
+      </div>
+
+    </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- MODAL NUEVO MOVIMIENTO (alineado al módulo Movimientos de Fede: tipo, fecha, tercero, medio de pago, ítems) -->
+<div class="modal-bg" id="mMov"><div class="modal" style="max-width:980px">
+  <div class="m-head"><div><h3>Nuevo movimiento</h3><p>Un movimiento puede tener varios ítems. El <b>tipo</b> define cómo impacta en el EERR; el lote se asigna solo (FIFO). Las entradas de producto terminado no se cargan acá: las genera Producción.</p></div><button class="x" onclick="close_('mMov')">✕</button></div>
+  <div class="mform">
+    <div class="row4">
+      <div class="f"><label>Tipo <span class="req">*</span></label><select id="vTipo" onchange="onTipoChange()"></select></div>
+      <div class="f"><label>Fecha <span class="req">*</span></label><input type="date" id="vFecha"></div>
+      <div class="f"><label id="vTerLbl">Tercero</label><select id="vTercero" onchange="onTerceroChange()"></select></div>
+      <div class="f" id="vPagoWrap"><label>Medio de pago</label><select id="vPago"><option>Sin medio de pago</option><option>Efectivo</option><option>Transferencia</option><option>Mercado Pago</option><option>Tienda Nube</option><option>Crédito (cta. cte.)</option></select></div>
+    </div>
+    <div class="row4 hidden" id="vNuevoCli" style="background:#F4F6EE;border:1px solid #DEE6CE;border-radius:10px;padding:10px 12px;margin-bottom:12px">
+      <div class="f" style="grid-column:span 2"><label>Nombre del cliente nuevo <span class="req">*</span></label><input type="text" id="vCliNombre" placeholder="Ej.: Veterinaria San Martín"></div>
+      <div class="f"><label>Tipo <span class="req">*</span></label><select id="vCliTipo"></select></div>
+      <div class="f"><label>&nbsp;</label><span class="muted" style="font-size:11.5px;line-height:1.4">Alta rápida: queda creado en Clientes; el resto de la ficha (CUIT, contacto) se completa después.</span></div>
+    </div>
+    <div class="row4">
+      <div class="f hidden" id="vLoteWrap"><select id="vLote"></select></div>
+      <div class="f" style="grid-column:span 4"><label>Impacto en el EERR</label><div id="vImpacto" style="padding-top:6px"></div></div>
+    </div>
+    <select id="vCanal" class="hidden"><option>—</option></select>
+  </div>
+  <div class="ptop" style="padding:4px 22px 6px"><h2 style="font-size:14.5px">Ítems</h2><button class="btn sm" onclick="addItem()">＋ Agregar ítem</button></div>
+  <table>
+    <thead><tr><th>Variante</th><th class="r">Cantidad</th><th class="r" id="vPrecioHdr">Precio + IVA / u</th><th>Lote (auto)</th><th class="r">Ingreso neto</th><th class="r">Costo (PPP)</th><th></th></tr></thead>
+    <tbody id="tbItems"></tbody>
+  </table>
+  <div class="impact" style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px 24px;padding:10px 16px">
+    <span><span class="t" style="display:inline;margin:0">Ingreso neto:</span> <b id="vIng">—</b></span>
+    <span><span class="t" style="display:inline;margin:0">Costo (PPP):</span> <b id="vCosto">—</b></span>
+    <span class="hidden" id="vCanalCostoWrap"><b id="vCanalCosto"></b></span><b id="vDesc" class="hidden"></b>
+  </div>
+  <div class="m-foot"><button class="btn" onclick="close_('mMov')">Cancelar</button><button class="btn g" onclick="crearMov()">Crear movimiento</button></div>
+</div></div>
+
+<!-- MODAL NUEVO CLIENTE (como el de Fede + tipos de Maitén) -->
+<div class="modal-bg" id="mCliente"><div class="modal" style="max-width:640px">
+  <div class="m-head"><div><h3>Nuevo cliente</h3><p>Los datos de contacto y CUIT son opcionales; nombre y tipo alcanzan para operar.</p></div><button class="x" onclick="close_('mCliente')">✕</button></div>
+  <div class="mform">
+    <div class="row2"><div class="f"><label>Nombre <span class="req">*</span></label><input type="text" id="cNombre" placeholder="Nombre del cliente"></div><div class="f"><label>Tipo <span class="req">*</span></label><select id="cTipo"></select></div></div>
+    <div class="row2"><div class="f"><label>Email</label><input type="text" id="cEmail" placeholder="cliente@email.com"></div><div class="f"><label>Teléfono</label><input type="text" id="cTel" placeholder="11-1234-5678"></div></div>
+    <div class="row2"><div class="f"><label>CUIT</label><input type="text" id="cCuit" placeholder="20-12345678-9"></div><div class="f"><label>Estado</label><select id="cEstado"><option>Activo</option><option>Inactivo</option></select></div></div>
+    <div class="row2"><div class="f full"><label>Notas</label><input type="text" id="cNotas" placeholder="Notas sobre el cliente…"></div></div>
+  </div>
+  <div class="m-foot"><button class="btn" onclick="close_('mCliente')">Cancelar</button><button class="btn g" onclick="crearCliente()">Crear cliente</button></div>
+</div></div>
+
+<!-- MODAL CIERRE DE ORDEN -->
+<div class="modal-bg" id="mCierre"><div class="modal" style="max-width:1100px">
+  <div class="m-head"><div><h3 id="zTitulo">Cerrar orden de producción</h3><p>Cargá lo que realmente pasó: consumo real (viene precargado con el teórico — corregí solo lo que difirió), unidades obtenidas y fabricación real.</p></div><button class="x" onclick="close_('mCierre')">✕</button></div>
+  <div style="max-height:40vh;overflow:auto">
+    <table>
+      <thead><tr><th>Insumo</th><th class="r">Estándar / u</th><th class="r">Consumo teórico</th><th class="r">Consumo real</th><th class="r">Desvío físico</th><th class="r">PPP</th><th class="r">Desvío $</th><th class="r">Costo real</th></tr></thead>
+      <tbody id="tbCierre"></tbody>
+    </table>
+  </div>
+  <div class="form" style="padding-top:12px">
+    <div class="row4">
+      <div class="f"><label>Unidades planificadas</label><input type="number" id="zPlan" readonly style="background:#F3F1E8"></div>
+      <div class="f"><label>Unidades obtenidas <span class="req">*</span></label><input type="number" id="zObt" min="1" oninput="calcCierre()"></div>
+      <div class="f"><label>Fabricación cotizada ($) <span class="muted" style="font-weight:400">· al planificar</span></label><input type="number" id="zFabCot" readonly style="background:#F3F1E8"></div>
+      <div class="f"><label>Fabricación cobrada por la fábrica ($) <span class="req">*</span></label><input type="number" id="zFabReal" oninput="calcCierre()"></div>
+    </div>
+    <div class="banner rule" style="margin:0 0 6px">🏭 <span>La fabricación es tercerizada: la fábrica cobra <b>un monto por el lote</b>, sin importar cuántas unidades se planificaron. El costo de fabricación por unidad sale de dividir ese monto por las <b>unidades obtenidas</b>: menos unidades, más caro cada una. Si cobró distinto a lo cotizado, la diferencia queda registrada.</span></div>
+  </div>
+  <div class="resumen" style="grid-template-columns:repeat(6,minmax(0,1fr))">
+    <div class="rs"><div class="k">MP + envases</div><div class="v" id="zMP">—</div></div>
+    <div class="rs"><div class="k">Fabricación</div><div class="v" id="zFab">—</div><div class="muted" style="font-size:11px" id="zFabDet"></div></div>
+    <div class="rs"><div class="k">Costo total</div><div class="v" id="zTot">—</div></div>
+    <div class="rs"><div class="k">Costo unitario</div><div class="v" id="zUnit">—</div></div>
+    <div class="rs"><div class="k">Rendimiento</div><div class="v" id="zRend">—</div></div>
+    <div class="rs"><div class="k">Desvío total</div><div class="v" id="zDesv">—</div></div>
+  </div>
+  <div class="m-foot"><button class="btn" onclick="close_('mCierre')">Cancelar</button><button class="btn g" onclick="cerrarOrdenFinal()">Cerrar orden y dar entrada al stock →</button></div>
+</div></div>
+
+<!-- MODAL COMPRA EN TANDA -->
+<div class="modal-bg" id="mCompra"><div class="modal" style="max-width:1040px">
+  <div class="m-head"><div><h3>Registrar compra de insumos</h3><p>Toda la tanda en una sola carga: completá solo las filas que compraste. Si es para un lote, la compra queda atada a ese lote.</p></div><button class="x" onclick="close_('mCompra')">✕</button></div>
+  <div class="mform">
+    <div class="row4">
+      <div class="f"><label>Fecha <span class="req">*</span></label><input type="date" id="cFecha"></div>
+      <div class="f"><label>Para el lote</label><select id="cLote"><option value="">— Stock general —</option></select></div>
+      <div class="f"><label>Precargar desde la receta de</label><select id="cProd"><option value="">— elegir producto —</option></select></div>
+      <div class="f"><label>Cantidad a fabricar</label><div style="display:flex;gap:6px"><input type="number" id="cCantFab" value="400" min="1"><button class="btn sm" style="white-space:nowrap" onclick="sugerirCompra()">Sugerir</button></div></div>
+    </div>
+    <div class="banner info" style="margin:0 0 6px">💡 <span><b>Sugerir</b> llena la columna Cantidad con lo que la receta pide para esa cantidad (estándar × unidades), <b>descontando lo que ya tenés en stock</b>. Después ajustás a lo que realmente compraste (packs, mínimos del proveedor).</span></div>
+  </div>
+  <div style="max-height:46vh;overflow:auto">
+    <table>
+      <thead><tr><th>Insumo</th><th>Unidad</th><th class="r">Stock actual</th><th class="r">Cantidad</th><th class="r">Costo total ($)</th><th class="r">Costo unit.</th><th>Vencimiento</th></tr></thead>
+      <tbody id="tbCompra"></tbody>
+    </table>
+  </div>
+  <div class="impact" style="display:flex;justify-content:space-between;align-items:center;padding:10px 16px"><span><span class="t" style="margin:0;display:inline">Líneas con compra:</span> <b id="cLineas">0</b></span><span><span class="t" style="margin:0;display:inline">Total de la compra:</span> <b id="cTotal" style="font-size:16px">$ 0</b></span></div>
+  <div class="m-foot"><button class="btn" onclick="close_('mCompra')">Cancelar</button><button class="btn g" onclick="registrarCompra()">Registrar compra</button></div>
+</div></div>
+
+<!-- MODAL BAJA INSUMO -->
+<div class="modal-bg" id="mBaja"><div class="modal">
+  <div class="m-head"><div><h3>Dar de baja insumo</h3><p>Saca el insumo del stock y registra la pérdida en el EERR del mes.</p></div><button class="x" onclick="close_('mBaja')">✕</button></div>
+  <div class="mform">
+    <div class="row2"><div class="f"><label>Fecha <span class="req">*</span></label><input type="date" id="bFecha"></div><div class="f"><label>Insumo <span class="req">*</span></label><select id="bIns" onchange="calcBaja()"></select></div></div>
+    <div class="row2"><div class="f"><label>Cantidad <span class="req">*</span></label><input type="number" id="bCant" value="1" step="any" oninput="calcBaja()"></div><div class="f"><label>Motivo <span class="req">*</span></label><select id="bMotivo"><option>Vencido</option><option>Secado / inutilizable</option><option>No reutilizable (sanitario)</option><option>Rotura / derrame</option><option>Ajuste de inventario</option></select></div></div>
+  </div>
+  <div class="impact"><div class="t">Qué va a pasar</div>
+    <div class="irow"><span>Impacto en el EERR</span><span class="tag gas">Pérdida por insumos</span></div>
+    <div class="irow"><span>Pérdida (cantidad × PPP)</span><b id="bMonto">—</b></div>
+    <div class="irow tot"><span>Stock resultante</span><b id="bRes">—</b></div>
+  </div>
+  <div class="m-foot"><button class="btn" onclick="close_('mBaja')">Cancelar</button><button class="btn g" onclick="registrarBaja()">Dar de baja</button></div>
+</div></div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============ DATOS MAESTROS (reales, del Excel GESTION) ============ */
+// INSUMOS: el precio (PPP) vive acá. Fuente: COSTOS LOTE, lote 2.
+// reut = reutilizable entre lotes (atributo por insumo; los naturales vencen/se secan → no).
+// pl = por lote: comprado y consumido (muestra, según PLANTILLA lote 1 y COSTOS LOTE lote 2).
+// Los insumos compartidos entre shampoo y crema (aloe, glicerina, euxyl, cajas, etiquetas) son UNA compra, contada una vez.
+const L1='Lote N.º 1',L2='Lote N.º 2';
+const insumos = {
+  lauril:{n:'Lauril éter sulfato de sodio (25%)',u:'kg',ppp:2921,usa:'SH',reut:true,pl:{[L1]:{comp:80,cons:64.4},[L2]:{comp:60,cons:56}}},
+  aloe:{n:'Gel de aloe vera',u:'kg',ppp:38609,usa:'SH · CR',reut:false,vence:true,pl:{[L1]:{comp:9.5,cons:9.45},[L2]:{comp:4,cons:3.2}}},
+  cocoamido:{n:'Cocoamido propil betaína',u:'kg',ppp:9191,usa:'SH',reut:true,pl:{[L1]:{comp:11.5,cons:11.5},[L2]:{comp:13,cons:10}}},
+  glicerina:{n:'Glicerina',u:'kg',ppp:4275,usa:'SH · CR',reut:true,pl:{[L1]:{comp:10.6,cons:10.6},[L2]:{comp:5,cons:4.2}}},
+  pantenol:{n:'Pantenol (Dexpantenol)',u:'kg',ppp:56929,usa:'SH',reut:true,vence:true,pl:{[L1]:{comp:1.2,cons:1.15},[L2]:{comp:1.5,cons:1}}},
+  fragRosa:{n:'Fragancia rosa mosqueta',u:'kg',ppp:37980,usa:'SH',reut:true,pl:{[L1]:{comp:1,cons:0.575},[L2]:{comp:0.5,cons:0.5}}},
+  rojo:{n:'Rojo punzó 4R',u:'kg',ppp:61060,usa:'SH',reut:true,pl:{[L1]:{comp:0.5,cons:0.0002},[L2]:{comp:0,cons:0.0002}}},
+  nacl:{n:'Cloruro de sodio',u:'kg',ppp:3561,usa:'SH',reut:true,pl:{[L1]:{comp:2.1,cons:2.07},[L2]:{comp:2.5,cons:1.8}}},
+  carbopol:{n:'Carbopol 940',u:'kg',ppp:41207,usa:'SH',reut:true,pl:{[L1]:{comp:1,cons:0.92},[L2]:{comp:1,cons:0.8}}},
+  euxyl:{n:'Euxyl PE 9010',u:'kg',ppp:63955,usa:'SH · CR',reut:true,pl:{[L1]:{comp:1.5,cons:1.29},[L2]:{comp:1,cons:0.62}}},
+  dea:{n:'Dietanolamina c.s.p. pH 5,5-6,5',u:'kg',ppp:7105,usa:'SH',reut:true,pl:{[L1]:{comp:0.5,cons:0.46},[L2]:{comp:0.5,cons:0.4}}},
+  agua:{n:'Agua purificada',u:'kg',ppp:0,usa:'SH · CR',reut:true,pl:{}},
+  karite:{n:'Manteca de karité',u:'kg',ppp:29171,usa:'CR',reut:false,vence:true,pl:{[L1]:{comp:11.5,cons:11.44},[L2]:{comp:2.5,cons:1.92}}},
+  coco:{n:'Aceite de coco neutro',u:'kg',ppp:19309,usa:'CR',reut:false,vence:true,pl:{[L1]:{comp:7.25,cons:7.15},[L2]:{comp:1.5,cons:1.2}}},
+  calendula:{n:'Aceite de caléndula',u:'kg',ppp:24841,usa:'CR',reut:false,vence:true,pl:{[L1]:{comp:7.25,cons:7.15},[L2]:{comp:1.5,cons:1.2}}},
+  cera:{n:'Cera de abejas',u:'kg',ppp:32871,usa:'CR',reut:true,pl:{[L1]:{comp:3,cons:2.86},[L2]:{comp:1,cons:0.48}}},
+  almendras:{n:'Aceite de almendras',u:'kg',ppp:25038,usa:'CR',reut:false,vence:true,pl:{[L1]:{comp:7.25,cons:7.15},[L2]:{comp:1.5,cons:1.2}}},
+  fragAlm:{n:'Fragancia almendras dulces',u:'kg',ppp:28937,usa:'CR',reut:true,pl:{[L1]:{comp:1,cons:0.3575},[L2]:{comp:1,cons:0.06}}},
+  alcohol:{n:'Alcohol cetearílico',u:'kg',ppp:8547,usa:'CR',reut:true,pl:{[L1]:{comp:4.3,cons:4.29},[L2]:{comp:1,cons:0.72}}},
+  vitE:{n:'Vitamina E (acetato de alfa tocoferilo)',u:'kg',ppp:81492,usa:'CR',reut:true,vence:true,pl:{[L1]:{comp:1,cons:0.715},[L2]:{comp:0.5,cons:0.12}}},
+  goma:{n:'Goma xántica',u:'kg',ppp:21128,usa:'CR',reut:true,pl:{[L1]:{comp:1,cons:0.7865},[L2]:{comp:0.5,cons:0.132}}},
+  envSH:{n:'Envase shampoo 250 ml',u:'u',ppp:599.56,usa:'SH',reut:true,pl:{[L1]:{comp:460,cons:460},[L2]:{comp:800,cons:100}}},
+  envCR:{n:'Envase crema 60 g',u:'u',ppp:1494.43,usa:'CR',reut:true,pl:{[L1]:{comp:2383,cons:2383},[L2]:{comp:1100,cons:400}}},
+  caja:{n:'Cajas',u:'u',ppp:511.41,usa:'SH · CR',reut:true,pl:{[L1]:{comp:4200,cons:2843},[L2]:{comp:500,cons:800}}},
+  etiq:{n:'Etiquetas',u:'u',ppp:179.75,usa:'SH · CR',reut:true,pl:{[L1]:{comp:4200,cons:2843},[L2]:{comp:500,cons:400}}}
+};
+// Costo unitario con el que se compró en el lote 1 (para valuar las bajas de ese lote)
+const cuL1={aloe:21347,karite:16765,coco:10036,calendula:13300,almendras:10982};
+// STOCK de insumos = Σ (comprado − consumido) de todos los lotes, solo para reutilizables. Los no reutilizables se dan de baja al cerrar cada lote.
+for(const k in insumos){const i=insumos[k];let s=0;for(const l in i.pl)s+=i.pl[l].comp-i.pl[l].cons;i.stock=i.reut?+Math.max(0,s).toFixed(4):0;}
+// PÉRDIDAS (bajas) generadas al cerrar cada lote para los no reutilizables. Van al EERR del mes de cierre.
+let perdidas=[];
+const cierreLote={[L1]:'2026-01-01',[L2]:'2026-08-08'};
+for(const k in insumos){const i=insumos[k];if(i.reut)continue;for(const l in i.pl){const s=+(i.pl[l].comp-i.pl[l].cons).toFixed(4);if(s>0){const cu=l===L1?(cuL1[k]||i.ppp):i.ppp;i.pl[l].baja=s;perdidas.push({fecha:cierreLote[l],k,cant:s,monto:Math.round(s*cu),motivo:'No reutilizable (sanitario)',lote:l});}}}
+// PRODUCTOS con su RECETA (físico puro). Fuente: ESTÁNDARES, cant/unidad.
+const productos = {
+  'MAI-SH-AR-250':{nombre:'Shampoo Aloe Vera y Rosa Mosqueta',rubro:'Capilar',pres:'250 ml',ppp:3718,stock:706,min:50,importe:26400,canalEcom:2930,fab:1092,
+    recetaVer:'v1 · vigente desde ene-2026',
+    receta:[['lauril',0.1422],['aloe',0.0051],['cocoamido',0.0254],['glicerina',0.0076],['pantenol',0.0025],['fragRosa',0.0013],['rojo',0.0000],['nacl',0.0046],['carbopol',0.0020],['euxyl',0.0013],['dea',0.0010],['agua',0.2540],['envSH',1],['caja',1],['etiq',1]]},
+  'MAI-CR-CAL-060':{nombre:'Crema Reparadora de Caléndula',rubro:'Corporal',pres:'60 g',ppp:4308,stock:2618,min:50,importe:29300,canalEcom:2810,fab:1460.36,
+    recetaVer:'v1 · vigente desde ene-2026',
+    receta:[['karite',0.0048],['coco',0.0030],['calendula',0.0030],['cera',0.0012],['almendras',0.0030],['glicerina',0.0030],['fragAlm',0.0001],['alcohol',0.0018],['vitE',0.0003],['aloe',0.0030],['euxyl',0.0003],['goma',0.0003],['agua',0.0600],['envCR',1],['caja',1]]}
+};
+const CANAL_FISICO = 248.78; // Costos canales · físico por unidad
+// CLIENTES / DESTINOS (muestra). En el sistema vienen del módulo Clientes.
+// Vienen del módulo Clientes (nombre, tipo, email, teléfono, CUIT, notas). El tipo a futuro puede definir lista de precios y canal.
+const tiposCliente=['Particular','Veterinaria','Pet shop','Distribuidor / mayorista','Marca aliada','Prensa / influencer'];
+let clientesDB=[
+  {n:'Consumidor final (Tienda Nube)',t:'Particular',email:'—',tel:'—',cuit:'—',notas:'Cliente genérico para ventas online sin identificar',estado:'Activo'},
+  {n:'Veterinaria Los Pinos',t:'Veterinaria',email:'—',tel:'—',cuit:'—',notas:'Trabaja en consignación. Reposición mensual.',estado:'Activo'},
+  {n:'Pet Shop Indicom',t:'Pet shop',email:'—',tel:'—',cuit:'—',notas:'Compra mayorista con 40% de descuento (ago-2026).',estado:'Activo'},
+  {n:'Distribuidora Zona Sur',t:'Distribuidor / mayorista',email:'—',tel:'—',cuit:'—',notas:'',estado:'Activo'},
+  {n:'Marca aliada (co-branding)',t:'Marca aliada',email:'—',tel:'—',cuit:'—',notas:'Acción de co-branding jul-2026 (snacks).',estado:'Activo'},
+  {n:'Influencer / prensa',t:'Prensa / influencer',email:'—',tel:'—',cuit:'—',notas:'',estado:'Activo'}];
+const clientes=clientesDB.map(c=>c.n);
+// STOCK POR LOTE del producto terminado (lo que está en depósito). FIFO: las salidas toman del lote más viejo.
+productos['MAI-SH-AR-250'].lotesStock=[{lote:'Lote N.º 1',u:306},{lote:'Lote N.º 2',u:400}];
+productos['MAI-CR-CAL-060'].lotesStock=[{lote:'Lote N.º 1',u:2208},{lote:'Lote N.º 2',u:400}];
+// CONSIGNACIONES: mercadería entregada que sigue siendo propia. Saldo por cliente.
+let consigSeq=1;
+const addDias=(f,d)=>{const x=new Date(f+'T00:00');x.setDate(x.getDate()+d);return x.toISOString().slice(0,10);};
+let consignaciones=[{id:consigSeq,fecha:'2026-07-28',vence:'2026-09-26',cliente:'Distribuidora Zona Sur',cod:'MAI-CR-CAL-060',lote:'Lote N.º 1',u:10,vend:0,dev:0}];
+const estadoCs=c=>pend(c)<=0?'Cerrada':(c.vence&&c.vence<hoy()?'Vencida':((c.vend||c.dev)?'Parcial':'Abierta'));
+const pend=c=>c.u-c.vend-c.dev;
+const consigPend=cod=>consignaciones.filter(c=>c.cod===cod).reduce((a,c)=>a+pend(c),0);
+const enDeposito=p=>p.lotesStock.reduce((a,l)=>a+l.u,0);
+function takeFIFO(p,u){const out=[];for(const l of p.lotesStock){if(u<=0)break;const t=Math.min(l.u,u);if(t>0){out.push({lote:l.lote,u:t});l.u-=t;u-=t;}}p.lotesStock=p.lotesStock.filter(l=>l.u>0);return out;}
+function addLote(p,lote,u){const l=p.lotesStock.find(x=>x.lote===lote);if(l)l.u+=u;else{p.lotesStock.push({lote,u});p.lotesStock.sort((a,b)=>a.lote.localeCompare(b.lote,'es',{numeric:true}));}}
+const lotesTxt=ls=>ls.map(l=>l.lote.replace('Lote N.º ','L')+' ×'+l.u).join(' · ');
+// FABRICACIÓN: tercerizada. La fábrica cotiza UN MONTO POR EL LOTE, sin importar cuántas unidades se planifiquen.
+// El costo unitario de fabricación = ese monto ÷ unidades realmente obtenidas. No es parte de la receta.
+// Precio VIGENTE de fabricación por lote: se mantiene hasta que la fábrica lo cambia. Historial por vigencia.
+let fabHist=[{monto:441600,desde:'2026-01-01'},{monto:436800,desde:'2026-08-08'}];
+const fabVigente=()=>fabHist[fabHist.length-1];
+let ultimaFab=fabVigente().monto;
+let lotes=[{id:'L1',nombre:'Lote N.º 1',fecha:'ene-2026'},{id:'L2',nombre:'Lote N.º 2',fecha:'ago-2026'}];
+const conceptosSalida=[
+  {v:'Venta',descuenta:true,imp:'ing'},{v:'Venta desde consignación',descuenta:true,imp:'ing',ref:true},{v:'Consignación',descuenta:false,imp:'mov',cli:true},{v:'Canje',descuenta:true,imp:'gas'},
+  {v:'Presentación',descuenta:true,imp:'gas'},{v:'Regalo',descuenta:true,imp:'gas'},{v:'Rotura/Defectuoso',descuenta:true,imp:'gas'},
+  {v:'Sorteo',descuenta:true,imp:'gas'},{v:'Tester',descuenta:true,imp:'gas'},{v:'Co-branding',descuenta:true,imp:'cob'},
+  {v:'Influencer',descuenta:true,imp:'gas'},{v:'Prueba',descuenta:true,imp:'gas'}];
+const conceptosEntrada=['Compra','Carga inicial','Ajuste','Devolución consignación','Producción'];
+const impLabel={ing:'Ingreso + CMV (venta)',gas:'Costo de salida no-venta',mov:'Movimiento de stock (no descuenta)',cob:'Acción comercial — co-branding (a costo)'};
+const impTag={ing:'ing',gas:'gas',mov:'mv',cob:'gas'};
+
+// ÓRDENES cerradas de muestra (lote 2, ago-2026) y MOVIMIENTOS de muestra (jul–ago 2026)
+let ordenes=[
+  {fecha:'2026-08-08',cod:'MAI-SH-AR-250',lote:'Lote N.º 2',cant:400,costoTotal:1487200,costoUnit:3718,desvMP:-1850,desvFab:0},
+  {fecha:'2026-08-08',cod:'MAI-CR-CAL-060',lote:'Lote N.º 2',cant:400,costoTotal:1723200,costoUnit:4308,desvMP:4200,desvFab:0}
+];
+let movimientos=[
+  {fecha:'2026-08-20',cod:'MAI-SH-AR-250',tipo:'Venta',canal:'online',dir:'out',unid:2,ing:43636,costo:7436},
+  {fecha:'2026-08-19',cod:'MAI-CR-CAL-060',tipo:'Venta',canal:'online',cliente:'Pet Shop Indicom',lotes:'L1 ×20',dir:'out',unid:20,ing:290579,costo:86160},
+  {fecha:'2026-08-19',cod:'MAI-SH-AR-250',tipo:'Venta',canal:'online',cliente:'Pet Shop Indicom',lotes:'L1 ×20',dir:'out',unid:20,ing:261818,costo:74360},
+  {fecha:'2026-08-08',cod:'MAI-CR-CAL-060',tipo:'Producción',canal:'—',lote:'Lote N.º 2',dir:'in',unid:400,ing:0,costo:1723200},
+  {fecha:'2026-08-08',cod:'MAI-SH-AR-250',tipo:'Producción',canal:'—',lote:'Lote N.º 2',dir:'in',unid:400,ing:0,costo:1487200},
+  {fecha:'2026-08-02',cod:'MAI-CR-CAL-060',tipo:'Regalo',canal:'—',dir:'out',unid:3,ing:0,costo:12924},
+  {fecha:'2026-07-28',cod:'MAI-CR-CAL-060',tipo:'Consignación',canal:'Distribuidor',cliente:'Distribuidora Zona Sur',lotes:'L1 ×10',dir:'mov',unid:10,ing:0,costo:0},
+  {fecha:'2026-07-15',cod:'MAI-SH-AR-250',tipo:'Co-branding',canal:'—',cliente:'Marca aliada (co-branding)',lotes:'L1 ×12',dir:'out',unid:12,ing:0,costo:44616},
+  {fecha:'2026-07-05',cod:'MAI-CR-CAL-060',tipo:'Venta',canal:'online',dir:'out',unid:1,ing:21793,costo:4308},
+  {fecha:'2026-07-03',cod:'MAI-CR-CAL-060',tipo:'Venta',canal:'online',dir:'out',unid:1,ing:24215,costo:4308},
+  {fecha:'2026-07-03',cod:'MAI-SH-AR-250',tipo:'Venta',canal:'físico',dir:'out',unid:5,ing:72645,costo:18590}
+];
+
+/* ============ HELPERS ============ */
+const money=n=>(n<0?'−':'')+'$ '+Math.round(Math.abs(n)).toLocaleString('es-AR');
+const num=(n,d=0)=>n.toLocaleString('es-AR',{minimumFractionDigits:d,maximumFractionDigits:d});
+const shortName=c=>c==='MAI-SH-AR-250'?'Shampoo':'Crema';
+const fdate=s=>s.split('-').reverse().join('/');
+function hoy(){return new Date().toISOString().slice(0,10);}
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);}
+function open_(id){document.getElementById(id).classList.add('open');}
+function close_(id){document.getElementById(id).classList.remove('open');}
+
+/* ============ NAVEGACION ============ */
+const stepNav={1:'navProductos',2:'navInsumos',3:'navProduccion',4:'navStock',5:'navMovimientos',6:'navReportes'};
+const stepTitle={1:['Productos','Ficha del producto: datos, receta y estándares.'],2:['Insumos','Materia prima y envases con su costo promedio (PPP).'],3:['Producción','Órdenes de fabricación: consumen la receta y dan entrada al producto terminado.'],4:['Stock','Foto en vivo del stock. Cada entrada y salida lo actualiza al instante.'],5:['Movimientos','Registro de entradas y salidas. De acá salen los indicadores.'],6:['Reportes — Reporte económico','Indicadores del período: todo se calcula desde los movimientos y las órdenes. Sin costos fijos, por ahora.']};
+function goConsig(){
+  document.querySelectorAll('.step').forEach(s=>s.classList.remove('act'));document.querySelectorAll('.panel').forEach(p=>p.classList.remove('act'));
+  document.getElementById('pCons').classList.add('act');document.querySelectorAll('.nav a').forEach(a=>a.classList.remove('on'));document.getElementById('navConsig').classList.add('on');
+  document.getElementById('h1').textContent='Consignaciones';document.getElementById('sub').textContent='Mercadería entregada a clientes que se cobra cuando venden. Las nuevas se crean desde Movimientos.';
+  renderConsig();window.scrollTo(0,0);
+}
+function goClientes(){
+  document.querySelectorAll('.step').forEach(s=>s.classList.remove('act'));document.querySelectorAll('.panel').forEach(p=>p.classList.remove('act'));
+  document.getElementById('pCli').classList.add('act');document.querySelectorAll('.nav a').forEach(a=>a.classList.remove('on'));document.getElementById('navClientes').classList.add('on');
+  document.getElementById('h1').textContent='Clientes';document.getElementById('sub').textContent='Registro maestro de clientes: alimenta movimientos, consignación y cuenta corriente.';
+  verLista();renderClientes();window.scrollTo(0,0);
+}
+function goStep(n){
+  document.querySelectorAll('.step').forEach((s,i)=>{s.classList.toggle('act',i===n-1);s.classList.toggle('done',i<n-1);});
+  document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('act',p.id==='p'+n));
+  document.querySelectorAll('.nav a').forEach(a=>a.classList.remove('on'));
+  document.getElementById(stepNav[n]).classList.add('on');
+  document.getElementById('h1').textContent=stepTitle[n][0];
+  document.getElementById('sub').textContent=stepTitle[n][1];
+  if(n===2) renderInsumos(); if(n===3) renderOrden(); if(n===4) renderStock(); if(n===5) renderMovs(); if(n===6) renderEERR();
+  window.scrollTo(0,0);
+}
+
+/* ============ PASO 1: PRODUCTO Y RECETA ============ */
+let prodActual='MAI-SH-AR-250';
+function verProd(cod,el){prodActual=cod;document.querySelectorAll('.seg span').forEach(s=>s.classList.remove('act'));el.classList.add('act');renderFicha();}
+function costoStdMP(cod){return productos[cod].receta.reduce((a,[k,q])=>a+q*insumos[k].ppp,0);}
+function verSub(s,el){document.querySelectorAll('.stab').forEach(x=>x.classList.remove('act'));el.classList.add('act');document.getElementById('subReceta').classList.toggle('hidden',s!=='receta');document.getElementById('subVersiones').classList.toggle('hidden',s!=='versiones');}
+function renderFicha(){
+  const p=productos[prodActual];
+  // Ficha = identidad del producto. Sin precios, sin costos: eso vive en Listas de precios y en Producción.
+  document.getElementById('fdat').innerHTML=`
+    <div class="row"><span class="muted">Producto</span><b>${p.nombre}</b></div>
+    <div class="row"><span class="muted">Código</span><span class="code">${prodActual}</span></div>
+    <div class="row"><span class="muted">Rubro</span><b>${p.rubro}</b></div>
+    <div class="row"><span class="muted">Presentación</span><b>${p.pres}</b></div>
+    <div class="row"><span class="muted">Stock mínimo</span><b>${p.min} u</b></div>
+    <div class="row"><span class="muted">Estado</span><span class="pill ok">Activo</span></div>`;
+  let html='',kg=0,uds=[];
+  for(const [k,q] of p.receta){const i=insumos[k];if(i.u==='kg')kg+=q;else uds.push(i.n.split(' ')[0].toLowerCase());
+    html+=`<tr><td class="pname">${i.n}</td><td class="muted">${i.u}</td><td class="r num">${i.u==='kg'?num(q,4)+' kg':num(q)+' u'}</td></tr>`;}
+  document.getElementById('tbReceta').innerHTML=html;
+  document.getElementById('recetaNote').innerHTML=`${p.receta.length} líneas: materia prima en kg por unidad terminada (${p.pres}) + ${uds.join(', ')}. <b>Solo cantidades físicas</b>: el precio de cada insumo vive en Insumos y el costo del producto se ve en Producción al costear una orden.`;
+  const lotesVer=ordenes.filter(o=>o.cod===prodActual&&o.estado==='Cerrada').map(o=>o.lote);
+  document.getElementById('tbVersiones').innerHTML=`<tr><td class="pname">v1</td><td>01/01/2026</td><td class="muted">—</td><td><span class="pill ok">Vigente</span></td><td class="code">${[...new Set(['Lote N.º 1',...lotesVer])].join(' · ')}</td></tr>`;
+}
+
+/* ============ PASO 2: INSUMOS ============ */
+const qty=(i,v)=>i.u==='kg'?num(v,3)+' kg':num(v)+' u';
+function fillLoteFilter(){const s=document.getElementById('fLote');const cur=s.value;s.innerHTML=lotes.map(l=>`<option>${l.nombre}</option>`).join('');s.value=lotes.some(l=>l.nombre===cur)?cur:lotes[lotes.length-1].nombre;}
+function renderInsumos(f){
+  f=(f||'').toLowerCase();const fr=document.getElementById('fReut').value;let html='',nR=0,nN=0,val=0;
+  for(const k in insumos){const i=insumos[k];if(k==='agua')continue;i.reut?nR++:nN++;val+=i.stock*i.ppp;
+    if(f&&!i.n.toLowerCase().includes(f))continue;if(fr==='1'&&!i.reut)continue;if(fr==='0'&&i.reut)continue;
+    const reut=i.reut?`<span class="pill ok">Sí</span>${i.vence?' <span class="muted" style="font-size:11px">vence</span>':''}`:`<span class="pill no">No</span> <span class="muted" style="font-size:11px">${i.vence?'vence / se seca':''}</span>`;
+    html+=`<tr><td class="pname">${i.n}</td><td class="muted">${i.u}</td><td>${reut}</td><td class="r num">${i.stock>0?qty(i,i.stock):'<span class="muted">0</span>'}</td><td class="r num">${money(i.ppp)}</td><td class="r ${i.stock>0?'num':'muted'}">${i.stock>0?money(i.stock*i.ppp):'—'}</td><td class="muted">${i.usa}</td></tr>`;}
+  document.getElementById('tbInsumos').innerHTML=html;
+  document.getElementById('kIns').textContent=nR+nN;document.getElementById('kInsReut').textContent=nR;document.getElementById('kInsNo').textContent=nN;document.getElementById('kInsVal').textContent=money(val);
+  // Conciliación del LOTE ELEGIDO (materia prima + envases)
+  fillLoteFilter();const lote=document.getElementById('fLote').value;
+  document.getElementById('kLoteA').textContent=lote;document.getElementById('kLoteP').textContent=lote;
+  let perd$=0,cK=0,uK=0,hc='';
+  for(const k in insumos){const i=insumos[k];const d=i.pl[lote];if(!d||(!d.comp&&!d.cons))continue;const sob=+(d.comp-d.cons).toFixed(4);
+    const cu=(lote===L1&&cuL1[k])?cuL1[k]:i.ppp;
+    if(i.u==='kg'){cK+=d.comp*cu;uK+=Math.min(d.cons,d.comp)*cu;}
+    const p=(!i.reut&&sob>0)?sob*cu:0;perd$+=p;
+    const dest=sob<0?'<span class="tp mov">Usó stock de lotes anteriores</span>':sob===0?'<span class="muted">Sin sobrante</span>':(i.reut?'<span class="tp entra">Queda en stock</span>':'<span class="tp gasto">Baja → pérdida</span>');
+    hc+=`<tr><td class="pname">${i.n}</td><td class="r num">${qty(i,d.comp)}</td><td class="r num">${qty(i,d.cons)}</td><td class="r ${sob>0?'num':'muted'}">${sob>0?qty(i,sob):'—'}</td><td>${i.reut?'<span class="pill ok">Sí</span>':'<span class="pill no">No</span>'}</td><td>${dest}</td><td class="r ${p?'neg':'muted'}">${p?money(p):'—'}</td></tr>`;}
+  document.getElementById('tbConc').innerHTML=hc||'<tr><td colspan="7" class="muted" style="text-align:center;padding:18px">Este lote todavía no tiene compras ni consumos.</td></tr>';
+  document.getElementById('kAprov').textContent=cK?(uK/cK*100).toFixed(0)+' %':'—';
+  document.getElementById('kPerd').textContent=money(perd$);
+  renderPerdidas();
+}
+function renderPerdidas(){
+  const s=[...perdidas].sort((a,b)=>b.fecha.localeCompare(a.fecha));
+  document.getElementById('tbPerd').innerHTML=s.map(p=>`<tr><td>${fdate(p.fecha)}</td><td class="pname">${insumos[p.k].n}</td><td class="r num">${qty(insumos[p.k],p.cant)}</td><td><span class="tp gasto">${p.motivo}</span></td><td class="code">${p.lote||'—'}</td><td class="r neg">${money(p.monto)}</td></tr>`).join('')||'<tr><td colspan="6" class="muted" style="text-align:center;padding:18px">Sin bajas registradas.</td></tr>';
+}
+function fillInsSelect(sel){sel.innerHTML=Object.keys(insumos).filter(k=>k!=='agua').map(k=>`<option value="${k}">${insumos[k].n}</option>`).join('');}
+/* --- Compra en tanda --- */
+function openCompra(){
+  document.getElementById('cLote').innerHTML='<option value="">— Stock general —</option>'+lotes.map(l=>`<option>${l.nombre}</option>`).join('')+'<option value="__new">＋ Crear lote nuevo…</option>';
+  document.getElementById('cProd').innerHTML='<option value="">— elegir producto —</option>'+Object.keys(productos).map(c=>`<option value="${c}">${productos[c].nombre}</option>`).join('');
+  document.getElementById('cFecha').value=hoy();
+  document.getElementById('tbCompra').innerHTML=Object.keys(insumos).filter(k=>k!=='agua').map(k=>{const i=insumos[k];return`<tr data-k="${k}"><td class="pname">${i.n}</td><td class="muted">${i.u}</td><td class="r muted">${qty(i,i.stock)}</td>
+    <td class="r"><input class="cell" type="number" step="any" min="0" data-cant oninput="calcCompra(this)"></td>
+    <td class="r"><input class="cell" type="number" step="any" min="0" data-tot oninput="calcCompra()" style="width:110px"></td>
+    <td class="r muted" data-unit>—</td><td><input class="cell" type="date" data-vence style="width:130px;text-align:left"></td></tr>`;}).join('');
+  calcCompra();open_('mCompra');
+}
+function sugerirCompra(){
+  const cod=document.getElementById('cProd').value;if(!cod){toast('Elegí el producto para precargar');return;}
+  const cant=Math.max(1,parseInt(document.getElementById('cCantFab').value)||1);const p=productos[cod];
+  document.querySelectorAll('#tbCompra tr').forEach(tr=>{const k=tr.dataset.k,i=insumos[k];const r=p.receta.find(x=>x[0]===k);const ci=tr.querySelector('[data-cant]'),ti=tr.querySelector('[data-tot]');
+    if(!r){ci.value='';ti.value='';return;}
+    const nec=Math.max(0,r[1]*cant-i.stock);const v=i.u==='kg'?+nec.toFixed(3):Math.ceil(nec);
+    ci.value=v>0?v:'';ti.value=v>0?Math.round(v*i.ppp):'';});
+  calcCompra();toast('Cantidades sugeridas desde la receta de '+shortName(cod)+' × '+cant+' u (neto de stock)');
+}
+function calcCompra(src){
+  let n=0,tot=0;
+  document.querySelectorAll('#tbCompra tr').forEach(tr=>{const i=insumos[tr.dataset.k];const c=parseFloat(tr.querySelector('[data-cant]').value)||0,ti=tr.querySelector('[data-tot]');
+    if(src&&tr.contains(src)&&c>0&&!ti.value)ti.value=Math.round(c*i.ppp); // sugiere el costo al PPP; se puede pisar
+    const t=parseFloat(ti.value)||0;const u=tr.querySelector('[data-unit]');
+    if(c>0){n++;tot+=t;u.textContent=money(t/c)+' / '+i.u;u.className='r num';}else{u.textContent='—';u.className='r muted';}});
+  document.getElementById('cLineas').textContent=n;document.getElementById('cTotal').textContent=money(tot);
+}
+function registrarCompra(){
+  let lote=document.getElementById('cLote').value;
+  if(lote==='__new'){const nm=prompt('Nombre del lote nuevo (ej. Lote N.º 3):');if(!nm)return;lotes.push({id:'L'+(lotes.length+1),nombre:nm,fecha:fdate(document.getElementById('cFecha').value).slice(3)});lote=nm;}
+  let n=0;
+  document.querySelectorAll('#tbCompra tr').forEach(tr=>{const k=tr.dataset.k,i=insumos[k];const c=parseFloat(tr.querySelector('[data-cant]').value)||0;if(c<=0)return;const t=parseFloat(tr.querySelector('[data-tot]').value)||0;
+    i.ppp=Math.round((i.stock*i.ppp+t)/(i.stock+c));i.stock=+(i.stock+c).toFixed(4);
+    if(lote){if(!i.pl[lote])i.pl[lote]={comp:0,cons:0};i.pl[lote].comp=+(i.pl[lote].comp+c).toFixed(4);}
+    n++;});
+  if(!n){toast('No cargaste ninguna cantidad');return;}
+  close_('mCompra');if(lote)document.getElementById('fLote').value=lote;renderInsumos();
+  toast('Compra registrada · '+n+' insumos'+(lote?' para '+lote:' al stock general'));
+}
+function openBaja(){fillInsSelect(document.getElementById('bIns'));document.getElementById('bFecha').value=hoy();calcBaja();open_('mBaja');}
+function calcBaja(){const i=insumos[document.getElementById('bIns').value],c=parseFloat(document.getElementById('bCant').value)||0;document.getElementById('bMonto').textContent=money(c*i.ppp);document.getElementById('bRes').textContent=qty(i,i.stock)+' → '+qty(i,Math.max(0,i.stock-c));}
+function registrarBaja(){const k=document.getElementById('bIns').value,i=insumos[k],c=parseFloat(document.getElementById('bCant').value)||0;if(c<=0){toast('Poné una cantidad válida');return;}if(c>i.stock){toast('No hay ese stock del insumo');return;}
+  i.stock=+(i.stock-c).toFixed(4);perdidas.unshift({fecha:document.getElementById('bFecha').value,k,cant:c,monto:Math.round(c*i.ppp),motivo:document.getElementById('bMotivo').value,lote:null});
+  close_('mBaja');renderInsumos();toast('Baja registrada · '+qty(i,c)+' de '+i.n+' → pérdida en el EERR');}
+
+/* ============ PASO 3: PRODUCCION ============ */
+// ordenes: {id, estado:'Planificada'|'Cerrada', fecha, cod, lote, plan, obt, costoTotal, costoUnit, desvMP, desvFab, recetaVer}
+let ordenSeq=ordenes.length;
+ordenes.forEach((o,i)=>{o.id=i+1;o.estado='Cerrada';o.plan=o.cant;o.obt=o.cant;o.recetaVer='v1';o.fabCot=o.cod==='MAI-SH-AR-250'?436800:584144;});
+function fillLoteSelect(sel){
+  sel.innerHTML=lotes.map(l=>`<option value="${l.id}">${l.nombre} · ${l.fecha}</option>`).join('')+`<option value="__new">＋ Crear lote nuevo…</option>`;
+  sel.value=lotes[lotes.length-1].id;
+}
+function loteDesdeSelect(sel,fecha){
+  if(sel.value==='__new'){const n=prompt('Nombre del lote nuevo (ej. Lote N.º 3):');if(!n)return null;lotes.push({id:'L'+(lotes.length+1),nombre:n,fecha:fdate(fecha).slice(3)});return n;}
+  return lotes.find(l=>l.id===sel.value).nombre;
+}
+/* --- Planificar --- */
+function renderOrden(){
+  const sel=document.getElementById('oProd');
+  if(!sel.options.length){sel.innerHTML=Object.keys(productos).map(c=>`<option value="${c}">${productos[c].nombre}</option>`).join('');document.getElementById('oFecha').value=hoy();}
+  fillLoteSelect(document.getElementById('oLote'));
+  const cod=sel.value,p=productos[cod],cant=Math.max(1,parseInt(document.getElementById('oCant').value)||1);
+  let html='',ok=0,falta=0,costo=0;
+  p.receta.forEach(([k,q])=>{const i=insumos[k];const teo=q*cant;costo+=teo*i.ppp;if(k==='agua'){html+=`<tr><td class="pname">${i.n}</td><td class="r muted">${num(q,4)} kg</td><td class="r num">${num(teo,3)} kg</td><td class="r muted">—</td><td><span class="muted">No se stockea</span></td></tr>`;return;}
+    const cubre=i.stock+1e-9>=teo;cubre?ok++:falta++;
+    html+=`<tr><td class="pname">${i.n}</td><td class="r muted">${i.u==='kg'?num(q,4):num(q)} ${i.u}</td><td class="r num">${i.u==='kg'?num(teo,3):num(teo)} ${i.u}</td><td class="r ${cubre?'num':'neg'}">${qty(i,i.stock)}</td><td>${cubre?'<span class="pill ok">Alcanza</span>':`<span class="pill no">Faltan ${qty(i,teo-i.stock)}</span>`}</td></tr>`;});
+  document.getElementById('tbPlan').innerHTML=html;
+  document.getElementById('pOk').textContent=ok;const f=document.getElementById('pFalta');f.textContent=falta;f.style.color=falta?'#B0463F':'inherit';
+  const fabEl=document.getElementById('oFab');if(fabEl.value==='')fabEl.value=fabVigente().monto;const fabP=parseFloat(fabEl.value)||0;
+  document.getElementById('oFabVig').textContent='· vigente '+money(fabVigente().monto)+' desde '+fdate(fabVigente().desde)+' — la fábrica cobra este monto por el lote, sin importar las unidades';
+  document.getElementById('oFabHist').textContent='Historial: '+fabHist.map(h=>fdate(h.desde).slice(3)+' '+money(h.monto)).join(' · ')+(fabP!==fabVigente().monto?'  →  si confirmás, '+money(fabP)+' pasa a ser el precio vigente':'');
+  document.getElementById('oFabU').value=money(fabP)+' ÷ '+num(cant)+' u = '+money(fabP/cant)+' / u';
+  document.getElementById('pCosto').textContent=money(costo+fabP)+' · '+money((costo+fabP)/cant)+'/u';
+  document.getElementById('btnFalta').disabled=!falta;document.getElementById('btnFalta').style.opacity=falta?1:.45;
+  renderOrdenes();
+}
+function comprarFaltante(){
+  const cod=document.getElementById('oProd').value,cant=document.getElementById('oCant').value,lsel=document.getElementById('oLote');
+  openCompra();
+  const cl=document.getElementById('cLote');cl.value=lsel.value==='__new'?'__new':lotes.find(l=>l.id===lsel.value).nombre;
+  document.getElementById('cProd').value=cod;document.getElementById('cCantFab').value=cant;sugerirCompra();
+}
+function crearOrden(){
+  const cod=document.getElementById('oProd').value,cant=Math.max(1,parseInt(document.getElementById('oCant').value)||1),fecha=document.getElementById('oFecha').value;
+  const lote=loteDesdeSelect(document.getElementById('oLote'),fecha);if(!lote)return;
+  const fabCot=parseFloat(document.getElementById('oFab').value)||0;
+  if(fabCot&&fabCot!==fabVigente().monto)fabHist.push({monto:fabCot,desde:fecha}); // la fábrica cambió el precio → nueva vigencia
+  ordenes.unshift({id:++ordenSeq,estado:'Planificada',fecha,cod,lote,plan:cant,obt:null,fabCot,costoTotal:null,costoUnit:null,desvMP:0,desvFab:0,recetaVer:'v1'});
+  fillLoteSelect(document.getElementById('oLote'));renderOrden();
+  toast(`Orden #${ordenSeq} planificada · ${shortName(cod)} · ${lote} · ${cant} u. Cuando terminen de fabricar, tocá "Completar y cerrar".`);
+}
+function renderOrdenes(){
+  document.getElementById('tbOrdenes').innerHTML=ordenes.map(o=>{const cerr=o.estado==='Cerrada';const rend=cerr&&o.plan?o.obt/o.plan:null;
+    return`<tr><td>${fdate(o.fecha)}</td><td class="pname">${shortName(o.cod)} <span class="muted" style="font-weight:400">#${o.id}</span></td><td class="code">${o.lote}</td>
+    <td>${cerr?'<span class="pill ok">Cerrada</span>':'<span class="pill low">Planificada</span>'}</td>
+    <td class="r num">${num(o.plan)}</td><td class="r ${cerr?'num':'muted'}">${cerr?num(o.obt):'—'}</td><td class="r ${cerr?'num':'muted'}">${rend!==null?(rend*100).toFixed(1).replace('.',',')+' %':'—'}</td>
+    <td class="r ${cerr?'num':'muted'}">${cerr?money(o.costoUnit):'—'}</td>
+    <td class="r">${cerr&&Math.abs(o.desvMP)>=0.5?`<span class="${o.desvMP>0?'neg':'pos'}">${(o.desvMP>0?'+':'')+money(o.desvMP)}</span>`:'<span class="muted">—</span>'}</td>
+    <td class="r">${cerr&&Math.abs(o.desvFab)>=0.5?`<span class="${o.desvFab>0?'neg':'pos'}">${(o.desvFab>0?'+':'')+money(o.desvFab)}</span>`:'<span class="muted">—</span>'}</td>
+    <td>${cerr?'<span class="tp entra">Stock generado</span>':`<button class="btn sm g" onclick="openCierre(${o.id})">Completar y cerrar</button>`}</td></tr>`;}).join('')||'<tr><td colspan="11" class="muted" style="text-align:center;padding:20px">Sin órdenes.</td></tr>';
+}
+/* --- Cerrar --- */
+let ordenAbierta=null;
+function openCierre(id){
+  const o=ordenes.find(x=>x.id===id);ordenAbierta=o;const p=productos[o.cod];
+  document.getElementById('zTitulo').textContent=`Cerrar orden #${o.id} — ${p.nombre} · ${o.lote} · ${num(o.plan)} u planificadas`;
+  document.getElementById('tbCierre').innerHTML=p.receta.map(([k,q])=>{const i=insumos[k];const teo=q*o.plan;
+    return`<tr data-k="${k}"><td class="pname">${i.n}</td><td class="r muted">${i.u==='kg'?num(q,4):num(q)} ${i.u}</td><td class="r num">${i.u==='kg'?num(teo,3):num(teo)} ${i.u}</td>
+      <td class="r"><input class="cell" type="number" step="any" min="0" value="${i.u==='kg'?teo.toFixed(3):teo}" oninput="calcCierre()"></td>
+      <td class="r" data-dfis>—</td><td class="r muted">${money(i.ppp)}</td><td class="r" data-dusd>—</td><td class="r num" data-real>—</td></tr>`;}).join('');
+  document.getElementById('zPlan').value=o.plan;document.getElementById('zObt').value=o.plan;
+  document.getElementById('zFabCot').value=o.fabCot;document.getElementById('zFabReal').value=o.fabCot;
+  calcCierre();open_('mCierre');
+}
+function calcCierre(){
+  const o=ordenAbierta,p=productos[o.cod],obt=Math.max(1,parseInt(document.getElementById('zObt').value)||1);
+  let mp=0,desvMP=0;
+  document.querySelectorAll('#tbCierre tr').forEach(tr=>{const k=tr.dataset.k,i=insumos[k];const q=p.receta.find(r=>r[0]===k)[1];const teo=q*o.plan;
+    const real=parseFloat(tr.querySelector('input').value)||0;const df=real-teo,du=df*i.ppp;mp+=real*i.ppp;desvMP+=du;
+    tr.querySelector('[data-dfis]').innerHTML=Math.abs(df)<1e-9?'<span class="muted">0</span>':`<span class="${df>0?'neg':'pos'}">${df>0?'+':''}${i.u==='kg'?num(df,3):num(df)}</span>`;
+    tr.querySelector('[data-dusd]').innerHTML=Math.abs(du)<0.5?'<span class="muted">—</span>':`<span class="${du>0?'neg':'pos'}">${du>0?'+':'−'}${money(Math.abs(du))}</span>`;
+    tr.querySelector('[data-real]').textContent=money(real*i.ppp);});
+  const fab=parseFloat(document.getElementById('zFabReal').value)||0,desvFab=fab-(o.fabCot||0),tot=mp+fab,desv=desvMP+desvFab,rend=obt/o.plan;
+  document.getElementById('zFabDet').textContent=money(fab)+' ÷ '+num(obt)+' u = '+money(fab/obt)+' / u';
+  document.getElementById('zMP').textContent=money(mp);document.getElementById('zFab').textContent=money(fab);document.getElementById('zTot').textContent=money(tot);
+  document.getElementById('zUnit').textContent=money(tot/obt)+' / u';
+  const r=document.getElementById('zRend');r.textContent=(rend*100).toFixed(1).replace('.',',')+' %';r.style.color=rend<0.97?'#B0463F':'#5E7142';
+  const d=document.getElementById('zDesv');d.textContent=Math.abs(desv)<0.5?'Sin desvío':(desv>0?'Sobrecosto ':'Ahorro ')+money(Math.abs(desv));d.style.color=desv>0.5?'#B0463F':(desv<-0.5?'#5E7142':'inherit');
+  return {o,p,obt,mp,fab,tot,desvMP,desvFab};
+}
+function cerrarOrdenFinal(){
+  const c=calcCierre(),o=c.o,p=c.p,fecha=o.fecha;
+  // 1) Consumo real → descuenta stock de insumos y se anota en la conciliación del lote
+  document.querySelectorAll('#tbCierre tr').forEach(tr=>{const k=tr.dataset.k,i=insumos[k];const real=parseFloat(tr.querySelector('input').value)||0;if(k==='agua')return;
+    i.stock=+Math.max(0,i.stock-real).toFixed(4);if(!i.pl[o.lote])i.pl[o.lote]={comp:0,cons:0};i.pl[o.lote].cons=+(i.pl[o.lote].cons+real).toFixed(4);});
+  // 2) Sobrantes NO reutilizables comprados para este lote → baja automática → pérdida del período (escenario B)
+  let nb=0,mb=0;
+  for(const k in insumos){const i=insumos[k];const d=i.pl[o.lote];if(i.reut||!d||d.baja)continue;const s=+(d.comp-d.cons).toFixed(4);
+    if(s>0){d.baja=s;i.stock=+Math.max(0,i.stock-s).toFixed(4);const m=Math.round(s*i.ppp);mb+=m;nb++;perdidas.push({fecha,k,cant:s,monto:m,motivo:'No reutilizable (sanitario)',lote:o.lote});}}
+  // 3) La orden queda cerrada con sus resultados
+  Object.assign(o,{estado:'Cerrada',obt:c.obt,costoTotal:c.tot,costoUnit:c.tot/c.obt,desvMP:c.desvMP,desvFab:c.desvFab});
+  // 4) PUENTE Producción → Stock: entrada de las unidades OBTENIDAS al costo del lote (PPP móvil)
+  const valorPrevio=p.stock*p.ppp;p.stock+=c.obt;p.ppp=Math.round((valorPrevio+c.tot)/p.stock);addLote(p,o.lote,c.obt);
+  movimientos.unshift({fecha,cod:o.cod,tipo:'Producción',canal:'—',lote:o.lote,lotes:o.lote.replace('Lote N.º ','L')+' ×'+c.obt,dir:'in',unid:c.obt,ing:0,costo:Math.round(c.tot)});
+  close_('mCierre');renderOrdenes();
+  toast(`Orden #${o.id} cerrada · +${c.obt} u de ${shortName(o.cod)} al stock a ${money(c.tot/c.obt)}/u`+(nb?` · ${nb} sobrantes no reutilizables dados de baja (${money(mb)})`:''));
+  setTimeout(()=>goStep(4),1000);
+}
+
+/* ============ PASO 4: STOCK ============ */
+function estadoDep(p,dep){if(dep<=0)return'<span class="pill no">Sin stock</span>';if(p.min>0&&dep<=p.min)return'<span class="pill low">Reponer</span>';return'<span class="pill ok">OK</span>';}
+function renderStock(){
+  let html='',bajo=0,valor=0,depT=0,consT=0;
+  for(const cod in productos){const p=productos[cod];const dep=enDeposito(p),cons=consigPend(cod);depT+=dep;consT+=cons;valor+=p.stock*p.ppp;if(dep<=0||(p.min>0&&dep<=p.min))bajo++;
+    html+=`<tr><td class="pname">${p.nombre}<div class="muted" style="font-size:11.5px;font-weight:400;margin-top:3px">${p.lotesStock.map(l=>l.lote+': <b>'+num(l.u)+'</b>').join(' · ')||'—'}</div></td><td class="code">${cod}</td><td class="r num">${num(dep)}</td><td class="r ${cons?'num':'muted'}">${cons?num(cons):'—'}</td><td class="r num">${num(p.stock)}</td><td class="r"><input class="cell" type="number" min="0" value="${p.min}" style="width:70px" onchange="setMin('${cod}',this.value)"></td><td>${estadoDep(p,dep)}</td><td class="r muted">${money(p.ppp)}</td><td class="r num">${money(p.stock*p.ppp)}</td></tr>`;}
+  document.getElementById('tbStock').innerHTML=html;
+  document.getElementById('kDep').textContent=num(depT);document.getElementById('kCons').textContent=num(consT);document.getElementById('kBajo').textContent=bajo;document.getElementById('kVal').textContent=money(valor);
+  renderConsig();
+}
+function renderConsig(){
+  const tb=document.getElementById('tbConsig');if(!tb)return;const fe=(document.getElementById('fCsEstado')||{}).value||'';
+  const s=[...consignaciones].sort((a,b)=>b.fecha.localeCompare(a.fecha));let ab=0,uf=0,vf=0,venc=0;
+  for(const c of consignaciones){const pn=pend(c);if(pn>0){ab++;uf+=pn;vf+=pn*productos[c.cod].ppp;if(estadoCs(c)==='Vencida')venc++;}}
+  const k=document.getElementById('csKpis');if(k)k.innerHTML=`<div class="kpi"><div class="k">Consignaciones abiertas</div><div class="v">${ab}</div><div class="d">Con unidades pendientes</div></div><div class="kpi"><div class="k">Unidades afuera</div><div class="v">${num(uf)}</div><div class="d">Siguen siendo stock propio</div></div><div class="kpi"><div class="k">Valor a costo afuera</div><div class="v green">${money(vf)}</div><div class="d">Pendientes × PPP</div></div><div class="kpi"><div class="k">Vencidas</div><div class="v ${venc?'red':''}">${venc}</div><div class="d">Pasó la fecha y quedan pendientes</div></div>`;
+  const pill=e=>`<span class="pill ${e==='Cerrada'?'ok':e==='Vencida'?'no':e==='Parcial'?'low':'ok'}" ${e==='Abierta'?'style="background:#E4EEF0;color:#3C6E76"':''}>${e}</span>`;
+  tb.innerHTML=s.filter(c=>!fe||estadoCs(c)===fe).map(c=>{const pn=pend(c),e=estadoCs(c);return`<tr><td class="pname">${c.cliente}</td><td>${shortName(c.cod)}</td><td class="code">${c.lote}</td><td class="r num">${num(c.u)}</td><td class="r ${c.vend?'num':'muted'}">${c.vend||'—'}</td><td class="r ${c.dev?'num':'muted'}">${c.dev||'—'}</td><td class="r ${pn?'num':'muted'}">${pn?num(pn):'—'}</td><td>${fdate(c.fecha)}</td><td class="${e==='Vencida'?'neg':'muted'}">${c.vence?fdate(c.vence):'—'}</td><td>${pill(e)}</td>
+    <td>${pn?`<button class="btn sm g" onclick="openSalida('Venta desde consignación',${c.id})">Registrar venta</button> <button class="btn sm" onclick="openEntrada('Devolución consignación',${c.id})">Devolución</button>`:'<span class="muted">—</span>'}</td></tr>`;}).join('')||'<tr><td colspan="11" class="muted" style="text-align:center;padding:18px">Todavía no hay consignaciones.</td></tr>';
+}
+
+/* ============ PASO 5: MOVIMIENTOS ============ */
+function renderMovs(){
+  const ft=document.getElementById('fTipo').value,fp=document.getElementById('fProd').value;let html='';
+  const sorted=[...movimientos].sort((a,b)=>b.fecha.localeCompare(a.fecha));
+  for(const m of sorted){if(ft==='entrada'&&m.dir!=='in')continue;if(ft==='salida'&&m.dir==='in')continue;if(fp&&m.cod!==fp)continue;
+    const cls=m.dir==='in'?'dirin':(m.dir==='mov'?'':'dirout');const esVenta=m.tipo.startsWith('Venta');const tp=esVenta?'venta':(m.dir==='in'?'entra':(m.dir==='mov'?'mov':'gasto'));
+    const u=m.dir==='in'?`<span class="pos">+${m.unid}</span>`:m.dir==='mov'?`<span class="muted">${m.unid} *</span>`:`<span class="neg">−${m.unid}</span>`;
+    html+=`<tr class="${cls}"><td>${fdate(m.fecha)}</td><td class="pname">${shortName(m.cod)}</td><td><span class="tp ${tp}">${m.tipo}</span></td><td class="${m.cliente?'':'muted'}">${m.cliente||'—'}${m.pago&&m.pago!=='Sin medio de pago'?`<div class="muted" style="font-size:11px">${m.pago}</div>`:''}</td><td class="code">${m.lotes||m.lote||'—'}</td><td class="r">${u}</td><td class="r ${m.ing?'num':'muted'}">${m.ing?money(m.ing):'—'}</td><td class="r ${m.costo?'num':'muted'}">${m.costo?money(m.costo):'—'}</td></tr>`;}
+  document.getElementById('tbMovs').innerHTML=html||'<tr><td colspan="8" class="muted" style="text-align:center;padding:24px">Sin movimientos con esos filtros.</td></tr>';
+}
+function fillProdSelect(sel){sel.innerHTML=Object.keys(productos).map(c=>`<option value="${c}">${productos[c].nombre}</option>`).join('');}
+function canalCostoU(cod,canal){return canal==='online'?productos[cod].canalEcom:CANAL_FISICO;}
+/* ===== TIPOS DE MOVIMIENTO (lista de Fede + los conceptos de Maitén). El tipo manda. ===== */
+// Sin "Ingreso": el producto terminado entra SOLO por Producción (el sistema calcula el costo). Ajuste ± se valúa al PPP vigente.
+const tipos=[
+  {v:'Venta',dir:'out',imp:'ing',ter:'Cliente',precio:'precio',canal:true,pago:true},
+  {v:'Venta desde consignación',dir:'out',imp:'ing',ter:'Cliente',req:true,precio:'precio',pago:true,consig:'vender'},
+  {v:'Consignación',dir:'mov',imp:'mov',ter:'Cliente',req:true,consig:'entregar'},
+  {v:'Canje',dir:'out',imp:'gas',ter:'Cliente'},{v:'Presentación',dir:'out',imp:'gas',ter:'Cliente'},{v:'Regalo',dir:'out',imp:'gas',ter:'Cliente'},
+  {v:'Rotura/Defectuoso',dir:'out',imp:'gas',ter:'—'},{v:'Sorteo',dir:'out',imp:'gas',ter:'Cliente'},{v:'Tester',dir:'out',imp:'gas',ter:'Cliente'},
+  {v:'Co-branding',dir:'out',imp:'cob',ter:'Cliente'},{v:'Influencer',dir:'out',imp:'gas',ter:'Cliente'},{v:'Prueba',dir:'out',imp:'gas',ter:'—'},
+  {v:'Devolución de consignación',dir:'mov',imp:'mov',ter:'Cliente',req:true,consig:'devolver'},
+  {v:'Ajuste de stock',dir:'adj',imp:'adj',ter:'—'}
+];
+impLabel.none='Entrada de stock — no impacta en el EERR hasta que se venda';impLabel.adj='Ajuste de inventario: si resta, pérdida (costo de salida no-venta); si suma, entra valuado al PPP vigente — sin costo a mano';
+impTag.none='mv';impTag.adj='gas';
+const proveedores=['Fábrica (tercerizada)','Droguería Norte','Envases del Sur','Otro'];
+const tipoDef=()=>tipos.find(t=>t.v===document.getElementById('vTipo').value);
+const consigsDe=(cliente,cod)=>consignaciones.filter(c=>c.cliente===cliente&&c.cod===cod&&pend(c)>0);
+const pendDe=(cliente,cod)=>consigsDe(cliente,cod).reduce((a,c)=>a+pend(c),0);
+
+function openMov(tipo,pre){
+  const ts=document.getElementById('vTipo');ts.innerHTML=tipos.map(t=>`<option>${t.v}</option>`).join('');ts.value=tipo||'Venta';
+  document.getElementById('vFecha').value=hoy();document.getElementById('vLote').innerHTML='<option value="">— sin lote —</option>'+lotes.map(l=>`<option>${l.nombre}</option>`).join('');
+  document.getElementById('tbItems').innerHTML='';onTipoChange();
+  if(pre&&pre.cliente)document.getElementById('vTercero').value=pre.cliente;
+  if(pre&&pre.cod){document.querySelector('#tbItems tr select').value=pre.cod;const q=document.querySelector('#tbItems tr [data-q]');if(pre.q)q.value=pre.q;}
+  calcMov();open_('mMov');
+}
+function onTipoChange(){
+  const t=tipoDef();const ter=document.getElementById('vTercero');
+  document.getElementById('vTerLbl').innerHTML=t.ter==='—'?'Tercero <span class="muted" style="font-weight:400">· no aplica</span>':t.ter+(t.req?' <span class="req">*</span>':'');
+  ter.disabled=t.ter==='—';
+  ter.innerHTML='<option value="">— sin especificar —</option>'+(t.ter==='Proveedor'?proveedores.map(c=>`<option>${c}</option>`):clientesDB.map(c=>`<option value="${c.n}">${c.n} · ${c.t}</option>`)).join('')+(t.ter==='Cliente'?'<option value="__new">＋ Nuevo cliente…</option>':'');
+  document.getElementById('vNuevoCli').classList.add('hidden');document.getElementById('vCliTipo').innerHTML=tiposCliente.map(x=>`<option>${x}</option>`).join('');
+  document.getElementById('vPagoWrap').classList.toggle('hidden',!t.pago);document.getElementById('vLoteWrap').classList.toggle('hidden',!t.lote);
+  document.getElementById('vPrecioHdr').textContent=t.precio==='costo'?'Costo unitario':t.precio==='precio'?'Precio + IVA / u':'—';
+  document.getElementById('vImpacto').innerHTML=`<span class="tag ${impTag[t.imp]}">${impLabel[t.imp]}</span>`;
+  if(!document.querySelectorAll('#tbItems tr').length)addItem();else calcMov();
+}
+function onTerceroChange(){document.getElementById('vNuevoCli').classList.toggle('hidden',document.getElementById('vTercero').value!=='__new');calcMov();}
+function altaRapidaCliente(){const nm=(document.getElementById('vCliNombre').value||'').trim();if(!nm)return null;if(!clientesDB.some(c=>c.n===nm)){clientesDB.push({n:nm,t:document.getElementById('vCliTipo').value,email:'—',tel:'—',cuit:'—',notas:'Alta rápida desde Movimientos',estado:'Activo'});clientes.push(nm);}return nm;}
+function addItem(){
+  const t=tipoDef();const tr=document.createElement('tr');
+  tr.innerHTML=`<td><select class="filter" style="width:100%" onchange="this.closest('tr').querySelector('[data-p]').value='';calcMov()">${Object.keys(productos).map(c=>`<option value="${c}">${productos[c].nombre}</option>`).join('')}</select></td>
+    <td class="r"><input class="cell" type="number" data-q value="1" ${t.dir==='adj'?'':'min="1"'} oninput="calcMov()"></td>
+    <td class="r"><input class="cell" type="number" data-p style="width:110px" oninput="calcMov()"></td>
+    <td class="code" data-lote>—</td><td class="r" data-ing>—</td><td class="r" data-costo>—</td><td class="hidden" data-res></td>
+    <td><button class="x" style="font-size:16px" onclick="this.closest('tr').remove();calcMov()">✕</button></td>`;
+  document.getElementById('tbItems').appendChild(tr);calcMov();
+}
+function calcMov(){
+  const t=tipoDef(),cliente=document.getElementById('vTercero').value==='__new'?null:document.getElementById('vTercero').value,canal='—';
+  let ing=0,costo=0,canalC=0;const usado={};
+  document.querySelectorAll('#tbItems tr').forEach(tr=>{const cod=tr.querySelector('select').value,p=productos[cod];const q=parseFloat(tr.querySelector('[data-q]').value)||0;const pi=tr.querySelector('[data-p]');
+    pi.classList.toggle('hidden',!t.precio);
+    if(t.precio==='precio'&&pi.value==='')pi.value=p.importe;if(t.precio==='costo'&&pi.value==='')pi.value=p.ppp;
+    const pv=parseFloat(pi.value)||0;const dep=enDeposito(p)-(usado[cod]||0);let lotesTx='—',res='—',li=0,lc=0;
+    if(t.dir==='in'){lotesTx=document.getElementById('vLote').value||'Ingreso';res=`${num(dep)} → ${num(dep+q)}`;}
+    else if(t.consig==='vender'||t.consig==='devolver'){const pd=cliente?pendDe(cliente,cod):0;lotesTx=cliente?(consigsDe(cliente,cod).map(c=>c.lote.replace('Lote N.º ','L')).join('/')||'—')+' (consig.)':'elegí el cliente';
+      res=t.consig==='vender'?`consig. ${num(pd)} → ${num(pd-q)}`:`consig. ${num(pd)} → ${num(pd-q)} · depósito +${num(q)}`;if(q>pd)res+=' ⚠ excede';
+      if(t.consig==='vender'){li=q*pv/1.21;lc=q*p.ppp;}}
+    else{const qq=t.dir==='adj'?Math.abs(Math.min(0,q)):q;let u=qq;const out=[];for(const l of p.lotesStock){if(u<=0)break;const tk=Math.min(l.u,u);if(tk>0){out.push({lote:l.lote,u:tk});u-=tk;}}
+      lotesTx=t.dir==='adj'&&q>0?'Ajuste (+)':(lotesTxt(out)||'—')+(u>0?' ⚠ faltan '+u:'');
+      res=`${num(dep)} → ${num(dep-(t.dir==='mov'?q:(t.dir==='adj'?-q:q)))}`;
+      if(t.dir==='out'||(t.dir==='adj'&&q<0)){lc=qq*p.ppp;}if(t.imp==='ing')li=q*pv/1.21;
+      usado[cod]=(usado[cod]||0)+(t.dir==='adj'?-q:q);}
+    tr.querySelector('[data-lote]').textContent=lotesTx;tr.querySelector('[data-ing]').textContent=li?money(li):'—';tr.querySelector('[data-costo]').textContent=lc?money(lc):'—';tr.querySelector('[data-res]').textContent=res;ing+=li;costo+=lc;});
+  document.getElementById('vDesc').textContent=t.dir==='out'?'Sí':t.dir==='in'?'No — suma':t.dir==='adj'?'Según el signo':(t.consig==='entregar'?'No — pasa al saldo del cliente':t.consig==='devolver'?'No — vuelve al depósito':'No');
+  document.getElementById('vIng').textContent=ing?money(ing):'—';document.getElementById('vCosto').textContent=costo?money(costo):'—';
+
+}
+let movSeq=100;
+function crearMov(){
+  const t=tipoDef();let cliente=document.getElementById('vTercero').value||null;if(cliente==='__new'){cliente=altaRapidaCliente();if(!cliente){toast('Poné el nombre del cliente nuevo');return;}}
+  const fecha=document.getElementById('vFecha').value,canal='—',pago=t.pago?document.getElementById('vPago').value:null,loteSel=document.getElementById('vLote').value;
+  const rows=[...document.querySelectorAll('#tbItems tr')];if(!rows.length){toast('Agregá al menos un ítem');return;}
+  if(t.req&&!cliente){toast('En '+t.v.toLowerCase()+' el cliente es obligatorio');return;}
+  // validar
+  const need={};for(const tr of rows){const cod=tr.querySelector('select').value,p=productos[cod],q=parseFloat(tr.querySelector('[data-q]').value)||0;
+    if(!q||(t.dir!=='adj'&&q<=0)){toast('Revisá las cantidades');return;}
+    if(t.consig==='vender'||t.consig==='devolver'){if(q>pendDe(cliente,cod)){toast('El cliente no tiene tantas unidades pendientes de '+shortName(cod));return;}}
+    else if(t.dir==='out'||t.dir==='mov'||(t.dir==='adj'&&q<0)){need[cod]=(need[cod]||0)+Math.abs(q);if(need[cod]>enDeposito(p)){toast('No hay stock suficiente en depósito de '+shortName(cod));return;}}}
+  const id=++movSeq;let n=0;
+  for(const tr of rows){const cod=tr.querySelector('select').value,p=productos[cod];let q=parseFloat(tr.querySelector('[data-q]').value)||0;const pv=parseFloat(tr.querySelector('[data-p]').value)||0;let rec={id,fecha,cod,tipo:t.v,cliente,canal:'—',pago,unid:Math.abs(q),ing:0,costo:0,dir:t.dir,lotes:''};
+    if(t.dir==='in'){const valorPrevio=p.stock*p.ppp;p.stock+=q;p.ppp=Math.round((valorPrevio+q*pv)/p.stock);addLote(p,loteSel||'Ingreso',q);rec.lotes=(loteSel?loteSel.replace('Lote N.º ','L'):'Ingreso')+' ×'+q;rec.costo=Math.round(q*pv);}
+    else if(t.consig==='entregar'){const out=takeFIFO(p,q);out.forEach(l=>consignaciones.push({id:++consigSeq,fecha,vence:addDias(fecha,60),cliente,cod,lote:l.lote,u:l.u,vend:0,dev:0}));rec.lotes=lotesTxt(out);}
+    else if(t.consig==='vender'){let u=q,ls=[];for(const c of consigsDe(cliente,cod)){if(u<=0)break;const tk=Math.min(pend(c),u);c.vend+=tk;u-=tk;ls.push({lote:c.lote,u:tk});}p.stock-=q;rec.lotes=lotesTxt(ls);rec.ing=Math.round(q*pv/1.21);rec.costo=Math.round(q*p.ppp);rec.dir='out';}
+    else if(t.consig==='devolver'){let u=q,ls=[];for(const c of consigsDe(cliente,cod)){if(u<=0)break;const tk=Math.min(pend(c),u);c.dev+=tk;u-=tk;addLote(p,c.lote,tk);ls.push({lote:c.lote,u:tk});}rec.lotes=lotesTxt(ls);}
+    else if(t.dir==='adj'){if(q>0){p.stock+=q;addLote(p,'Ajuste',q);rec.dir='in';rec.lotes='Ajuste ×'+q;}else{q=-q;const out=takeFIFO(p,q);p.stock-=q;rec.dir='out';rec.lotes=lotesTxt(out);rec.costo=Math.round(q*p.ppp);}}
+    else{const out=takeFIFO(p,q);p.stock-=q;rec.lotes=lotesTxt(out);rec.costo=Math.round(q*p.ppp);if(t.imp==='ing')rec.ing=Math.round(q*pv/1.21);}
+    movimientos.unshift(rec);n++;}
+  close_('mMov');renderStock();renderMovs();
+  toast(`Movimiento #${id} · ${t.v} · ${n} ítem${n>1?'s':''}`+(cliente?' · '+cliente:'')+(t.imp==='ing'?' → mirá el EERR (paso 6)':''));
+}
+/* compatibilidad con los botones de consignación */
+function openSalida(tipo,refId){const c=refId?consignaciones.find(x=>x.id===refId):null;openMov(tipo||'Venta',c?{cliente:c.cliente,cod:c.cod,q:pend(c)}:null);}
+function openEntrada(tipo,refId){const c=refId?consignaciones.find(x=>x.id===refId):null;openMov(tipo==='Devolución consignación'?'Devolución de consignación':(tipo||'Ingreso'),c?{cliente:c.cliente,cod:c.cod,q:pend(c)}:null);}
+/* ===== CLIENTES ===== */
+const statsCliente=n=>{const ms=movimientos.filter(m=>m.cliente===n);const v=ms.filter(m=>m.tipo.startsWith('Venta'));return{u:v.reduce((a,m)=>a+m.unid,0),ing:v.reduce((a,m)=>a+m.ing,0),movs:ms.length,ult:ms.length?ms.map(m=>m.fecha).sort().pop():null,cons:consignaciones.filter(c=>c.cliente===n).reduce((a,c)=>a+pend(c),0)};};
+function renderClientes(f){
+  f=(f||'').toLowerCase();const ft=document.getElementById('fCliTipo');if(ft.options.length<=1)ft.innerHTML='<option value="">Todos los tipos</option>'+tiposCliente.map(t=>`<option>${t}</option>`).join('');
+  const sel=ft.value;let html='';
+  for(const c of clientesDB){if(f&&!c.n.toLowerCase().includes(f))continue;if(sel&&c.t!==sel)continue;const s=statsCliente(c.n);
+    html+=`<tr style="cursor:pointer" onclick="verCliente(this.dataset.n)" data-n="${c.n.replace(/"/g,'&quot;')}"><td class="pname">${c.n}</td><td>${c.t}</td><td class="muted">${c.email}</td><td class="muted">${c.tel}</td><td class="r ${s.u?'num':'muted'}">${s.u||'—'}</td><td class="r ${s.ing?'num':'muted'}">${s.ing?money(s.ing):'—'}</td><td class="r ${s.cons?'num':'muted'}">${s.cons||'—'}</td><td><span class="pill ${c.estado==='Activo'?'ok':'no'}">${c.estado}</span></td></tr>`;}
+  document.getElementById('tbClientes').innerHTML=html;document.getElementById('cliCount').textContent='· '+clientesDB.length+' clientes';
+}
+function verLista(){document.getElementById('cliLista').classList.remove('hidden');document.getElementById('cliFicha').classList.add('hidden');}
+function verCliente(n){
+  const c=clientesDB.find(x=>x.n===n),s=statsCliente(n);
+  document.getElementById('cliLista').classList.add('hidden');document.getElementById('cliFicha').classList.remove('hidden');
+  document.getElementById('cfNombre').textContent=c.n;
+  document.getElementById('cfDatos').innerHTML=`<div class="row"><span class="muted">Tipo</span><b>${c.t}</b></div><div class="row"><span class="muted">Email</span><span>${c.email}</span></div><div class="row"><span class="muted">Teléfono</span><span>${c.tel}</span></div><div class="row"><span class="muted">CUIT</span><span class="code">${c.cuit}</span></div><div class="row"><span class="muted">Estado</span><span class="pill ${c.estado==='Activo'?'ok':'no'}">${c.estado}</span></div><div class="row" style="display:block"><span class="muted">Notas</span><div style="font-size:13px;margin-top:4px">${c.notas||'—'}</div></div>`;
+  document.getElementById('cfKpis').innerHTML=`<div class="kpi"><div class="k">Unidades compradas</div><div class="v">${num(s.u)}</div><div class="d">${s.movs} movimientos</div></div><div class="kpi"><div class="k">Ingresos netos</div><div class="v green">${money(s.ing)}</div><div class="d">Ventas al cliente</div></div><div class="kpi"><div class="k">En consignación</div><div class="v ${s.cons?'':'muted'}">${num(s.cons)}</div><div class="d">Unidades pendientes</div></div><div class="kpi"><div class="k">Último movimiento</div><div class="v" style="font-size:18px">${s.ult?fdate(s.ult):'—'}</div><div class="d">Saldo cta. cte.: <b>próximo paso</b></div></div>`;
+  const cs=consignaciones.filter(x=>x.cliente===n);
+  document.getElementById('cfConsig').innerHTML=cs.map(x=>`<tr><td>${fdate(x.fecha)}</td><td class="pname">${shortName(x.cod)}</td><td class="code">${x.lote}</td><td class="r num">${x.u}</td><td class="r ${x.vend?'num':'muted'}">${x.vend||'—'}</td><td class="r ${x.dev?'num':'muted'}">${x.dev||'—'}</td><td class="r ${pend(x)?'num':'muted'}">${pend(x)?pend(x)+' · vence '+fdate(x.vence)+' · '+estadoCs(x):'<span class="pill ok">Cerrada</span>'}</td></tr>`).join('')||'<tr><td colspan="7" class="muted" style="text-align:center;padding:16px">Sin consignaciones.</td></tr>';
+  const ms=movimientos.filter(m=>m.cliente===n).sort((a,b)=>b.fecha.localeCompare(a.fecha));
+  document.getElementById('cfMovs').innerHTML=ms.map(m=>`<tr><td>${fdate(m.fecha)}</td><td><span class="tp ${m.tipo.startsWith('Venta')?'venta':(m.dir==='mov'?'mov':'gasto')}">${m.tipo}</span></td><td class="pname">${shortName(m.cod)}</td><td class="code">${m.lotes||'—'}</td><td class="r num">${m.unid}</td><td class="r ${m.ing?'num':'muted'}">${m.ing?money(m.ing):'—'}</td><td class="muted">${m.pago||'—'}</td></tr>`).join('')||'<tr><td colspan="7" class="muted" style="text-align:center;padding:16px">Sin movimientos.</td></tr>';
+  window.scrollTo(0,0);
+}
+function openCliente(){document.getElementById('cTipo').innerHTML=tiposCliente.map(t=>`<option>${t}</option>`).join('');['cNombre','cEmail','cTel','cCuit','cNotas'].forEach(i=>document.getElementById(i).value='');open_('mCliente');}
+function crearCliente(){const n=(document.getElementById('cNombre').value||'').trim();if(!n){toast('El nombre es obligatorio');return;}if(clientesDB.some(c=>c.n===n)){toast('Ese cliente ya existe');return;}
+  const g=i=>document.getElementById(i).value||'—';clientesDB.push({n,t:document.getElementById('cTipo').value,email:g('cEmail'),tel:g('cTel'),cuit:g('cCuit'),notas:document.getElementById('cNotas').value||'',estado:document.getElementById('cEstado').value});clientes.push(n);
+  close_('mCliente');renderClientes();toast('Cliente creado · '+n);}
+function setMin(cod,v){productos[cod].min=Math.max(0,parseInt(v)||0);renderStock();}
+
+/* ============ PASO 6: REPORTE ECONÓMICO (estructura del módulo Reportes de Fede + lo que calcula el proceso) ============ */
+const MESES=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+const MESESL=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const mlabel=ym=>MESES[parseInt(ym.slice(5,7))-1]+'-'+ym.slice(2,4);
+const mlong=ym=>MESESL[parseInt(ym.slice(5,7))-1]+' de '+ym.slice(0,4);
+const esVenta=m=>m.tipo==='Venta'||m.tipo==='Venta desde consignación';
+const Z=()=>({uSH:0,uCR:0,ingSH:0,ingCR:0,cmvSH:0,cmvCR:0,canSH:0,canCR:0,desvMP:0,desvFab:0,cob:0,snv:0,canNV:0,perd:0});
+function datosMensuales(){
+  const fechas=[...movimientos.map(m=>m.fecha.slice(0,7)),...ordenes.map(o=>o.fecha.slice(0,7)),...perdidas.map(p=>p.fecha.slice(0,7))].sort();
+  const meses=[];{let [y,m]=fechas[0].split('-').map(Number);const fin=fechas[fechas.length-1];let cur;do{cur=`${y}-${String(m).padStart(2,'0')}`;meses.push(cur);m++;if(m>12){m=1;y++;}}while(cur<fin);}
+  const D={};meses.forEach(m=>D[m]=Z());
+  for(const m of movimientos){const d=D[m.fecha.slice(0,7)];if(!d)continue;const sh=m.cod==='MAI-SH-AR-250';
+    if(esVenta(m)){const cc=(m.canal&&m.canal!=='—')?m.unid*canalCostoU(m.cod,m.canal):0;if(sh){d.uSH+=m.unid;d.ingSH+=m.ing;d.cmvSH+=m.costo;d.canSH+=cc;}else{d.uCR+=m.unid;d.ingCR+=m.ing;d.cmvCR+=m.costo;d.canCR+=cc;}}
+    else if(m.tipo==='Co-branding'){d.cob+=m.costo;}
+    else if(m.dir==='out'){d.snv+=m.costo;if(m.canal&&m.canal!=='—')d.canNV+=m.unid*CANAL_FISICO;}}
+  for(const o of ordenes){if(o.estado!=='Cerrada')continue;const d=D[o.fecha.slice(0,7)];if(d){d.desvMP+=o.desvMP;d.desvFab+=o.desvFab;}}
+  for(const p of perdidas){const d=D[p.fecha.slice(0,7)];if(d)d.perd+=p.monto;}
+  return {meses,D};
+}
+const calc=d=>{const ing=d.ingSH+d.ingCR,cmv=d.cmvSH+d.cmvCR,mb=ing-cmv,can=d.canSH+d.canCR,cm=mb-can,ah=-(d.desvMP+d.desvFab),ca=cm+ah,res=ca-d.cob-d.snv-d.canNV-d.perd;return{ing,cmv,mb,can,cm,ah,ca,res};};
+const pct=v=>v===null||v===undefined?'—':(v*100).toFixed(1).replace('.',',')+' %';
+function renderEERR(){
+  const {meses,D}=datosMensuales();
+  const sel=document.getElementById('rpMes');const cur=sel.value;sel.innerHTML=meses.slice().reverse().map(m=>`<option value="${m}">${mlong(m)}</option>`).join('');sel.value=meses.includes(cur)?cur:meses[meses.length-1];
+  renderReporte();
+  // Evolución mensual
+  const T=Z();meses.forEach(m=>{for(const k in T)T[k]+=D[m][k];});const cols=[...meses.map(m=>D[m]),T];
+  document.getElementById('eerrHead').innerHTML=`<tr><th>Concepto</th>${meses.map(m=>`<th class="r">${mlabel(m)}</th>`).join('')}<th class="r">TOTAL</th></tr>`;
+  const row=(label,fn,cls='',fmt=money,indent=true)=>`<tr class="${cls}"><td class="${indent?'in':''}">${label}</td>${cols.map((d,i)=>{const v=fn(d,calc(d));return`<td class="r ${i===cols.length-1?'tot':''}">${v===null?'':fmt(v)}</td>`;}).join('')}</tr>`;
+  const uf=v=>num(v);const h=l=>`<tr class="h"><td colspan="${cols.length+1}">${l}</td></tr>`;
+  document.getElementById('eerrBody').innerHTML=
+    h('Unidades vendidas')+row('Shampoo',d=>d.uSH,'',uf)+row('Crema',d=>d.uCR,'',uf)+row('Total unidades',d=>d.uSH+d.uCR,'t',uf,false)+
+    h('Ingresos por ventas (netos de IVA)')+row('Shampoo',d=>d.ingSH)+row('Crema',d=>d.ingCR)+row('TOTAL INGRESOS',(d,c)=>c.ing,'t',money,false)+
+    h('Costo de mercadería vendida (PPP)')+row('Shampoo',d=>d.cmvSH)+row('Crema',d=>d.cmvCR)+row('TOTAL CMV',(d,c)=>c.cmv,'t',money,false)+
+    row('RESULTADO BRUTO',(d,c)=>c.mb,'t',money,false)+row('% margen bruto',(d,c)=>c.ing?c.mb/c.ing:null,'',pct)+
+    h('Costos variables de canal — canal pendiente de definir con las socias')+row('Total costos de canal',(d,c)=>c.can)+
+    h('Desvíos de producción (órdenes cerradas)')+row('Ahorro / (sobrecosto) materia prima',d=>-d.desvMP)+row('Fabricación: diferencia entre lo cotizado y lo cobrado',d=>-d.desvFab)+
+    h('Otros costos del período')+row('Acciones comerciales — co-branding (a costo)',d=>d.cob)+row('Salidas no-venta a costo (canje, regalo, rotura, ajustes…)',d=>d.snv)+row('Pérdida por insumos (vencidos / no reutilizables)',d=>d.perd)+
+    row('RESULTADO ANTES DE COSTOS FIJOS',(d,c)=>c.res,'ebit',money,false);
+}
+function renderReporte(){
+  const {meses,D}=datosMensuales();const mes=document.getElementById('rpMes').value||meses[meses.length-1];const d=D[mes]||Z();const c=calc(d);
+  document.getElementById('rpMesLbl').textContent=mlong(mes);
+  const u=d.uSH+d.uCR;
+  document.getElementById('rpKpis').innerHTML=`
+    <div class="kpi"><div class="k">Unidades vendidas</div><div class="v">${num(u)}</div><div class="d">Shampoo ${num(d.uSH)} · Crema ${num(d.uCR)}</div></div>
+    <div class="kpi"><div class="k">Ingresos</div><div class="v">${money(c.ing)}</div><div class="d">Netos de IVA</div></div>
+    <div class="kpi"><div class="k">CMV</div><div class="v">${money(c.cmv)}</div><div class="d">Al costo promedio (PPP)</div></div>
+    <div class="kpi"><div class="k">Resultado bruto</div><div class="v ${c.mb<0?'red':'green'}">${money(c.mb)}</div><div class="d">${c.ing?pct(c.mb/c.ing)+' de margen':'—'}</div></div>`;
+  // Por producto
+  let hp='';for(const cod in productos){const p=productos[cod],sh=cod==='MAI-SH-AR-250';const uu=sh?d.uSH:d.uCR,ing=sh?d.ingSH:d.ingCR,cmv=sh?d.cmvSH:d.cmvCR,br=ing-cmv,st=enDeposito(p);
+    hp+=`<tr><td class="pname">${p.nombre}</td><td class="r num">${num(uu)}</td><td class="r num">${money(ing)}</td><td class="r num">${money(cmv)}</td><td class="r num">${money(br)}</td><td class="r">${ing?pct(br/ing):'—'}</td><td class="r num">${num(st)}</td><td class="r">${uu?(st/uu).toFixed(1).replace('.',','):'—'}</td><td class="r">${(uu+st)?pct(uu/(uu+st)):'—'}</td></tr>`;}
+  document.getElementById('rpProd').innerHTML=hp;
+  // Desglose por tipo
+  const T={};for(const m of movimientos){if(m.fecha.slice(0,7)!==mes)continue;if(!T[m.tipo])T[m.tipo]={u:0,c:0,dir:m.dir};T[m.tipo].u+=m.unid;T[m.tipo].c+=m.costo;}
+  const orden=['Producción','Venta','Venta desde consignación','Consignación','Devolución de consignación','Canje','Presentación','Regalo','Rotura/Defectuoso','Sorteo','Tester','Co-branding','Influencer','Prueba','Ajuste de stock'];
+  const keys=Object.keys(T).sort((a,b)=>orden.indexOf(a)-orden.indexOf(b));
+  document.getElementById('rpTipos').innerHTML=keys.map(k=>{const t=T[k];const cls=k.startsWith('Venta')?'venta':(t.dir==='in'?'entra':(t.dir==='mov'?'mov':'gasto'));return`<tr><td><span class="tp ${cls}">${k}</span></td><td class="r num">${num(t.u)}</td><td class="r ${t.c?'num':'muted'}">${t.c?money(t.c):'—'}</td></tr>`;}).join('')||'<tr><td colspan="3" class="muted" style="text-align:center;padding:16px">Sin movimientos en el período.</td></tr>';
+  // Cascada
+  const r=(l,v,cls='')=>`<tr class="${cls}"><td>${l}</td><td class="r ${cls?'':'num'}">${money(v)}</td></tr>`;
+  document.getElementById('rpCascada').innerHTML=r('Resultado bruto',c.mb,'t')+r('− Costos de canal (pendiente de definir)',-c.can)+r('± Desvíos de producción',c.ah)+r('− Co-branding (a costo)',-d.cob)+r('− Salidas no-venta a costo',-d.snv)+r('− Pérdida por insumos',-d.perd)+r('RESULTADO ANTES DE COSTOS FIJOS',c.res,'ebit');
+}
+
+/* init */
+document.querySelectorAll('.modal-bg').forEach(bg=>bg.addEventListener('click',e=>{if(e.target===bg)bg.classList.remove('open');}));
+renderFicha();renderInsumos();renderStock();
+</script>
+</body>
+</html>

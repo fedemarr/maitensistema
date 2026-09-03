@@ -1,5 +1,6 @@
 import { relations, sql } from "drizzle-orm";
 import {
+  type AnyPgColumn,
   boolean,
   check,
   date,
@@ -7,19 +8,19 @@ import {
   numeric,
   pgEnum,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uuid,
 } from "drizzle-orm/pg-core";
 
 /* ─────────────────────────────────────────────────────────────
- * Esquema normalizado — primer corte (Fase 1).
- * Cubre el núcleo comercial. Contabilidad (asientos / plan de
- * cuentas), consignaciones y cuentas corrientes se agregan en
- * Fase 2 con sus propias tablas.
+ * Esquema — Fase 4 (spec funcional Maitén v1.0).
+ * Modelo de stock: entradas − salidas, FIFO por lote, PPP móvil por producto.
+ * Ver docs/fase-4-plan.md y docs/ESPECIFICACION_SISTEMA_MAITEN.md.
  *
- * Convención: TypeScript en camelCase, Postgres en snake_case
- * (drizzle mapea solo, ver `casing` en drizzle.config.ts).
+ * Convención: TS camelCase, Postgres snake_case (casing en drizzle.config.ts).
+ * Montos: numeric(14,2) como string. Cantidades físicas: numeric(14,4).
  * ───────────────────────────────────────────────────────────── */
 
 const timestamps = {
@@ -32,113 +33,91 @@ const timestamps = {
     .$onUpdate(() => new Date()),
 };
 
+const money = (name: string) =>
+  numeric(name, { precision: 14, scale: 2 }).notNull().default("0");
+const qty = (name: string) =>
+  numeric(name, { precision: 14, scale: 4 }).notNull().default("0");
+
 /* ── Enums ──────────────────────────────────────────────────── */
 
 export const rolUsuario = pgEnum("rol_usuario", ["admin", "ventas", "lectura"]);
 
 export const tipoCliente = pgEnum("tipo_cliente", [
-  "veterinaria",
-  "peluqueria",
-  "influencer",
-  "mayorista",
   "particular",
+  "veterinaria",
+  "pet_shop",
+  "distribuidor",
+  "marca_aliada",
+  "prensa_influencer",
 ]);
 
-/** Los 8 tipos de movimiento del negocio (spec de Lautaro) + ajuste + producción. */
-export const tipoMovimiento = pgEnum("tipo_movimiento", [
-  "ingreso", // compra a proveedor / alta de stock
-  "venta",
-  "consignacion", // sale stock, no cobra
-  "canje", // producto por servicio / posteo
-  "presentacion", // muestra a veterinaria
-  "regalo",
-  "rotura", // defectuoso / baja
-  "devolucion_consignacion",
-  "ajuste", // fija el stock a un valor contado / corrige (requiere notas)
-  "produccion", // consume insumos y da de alta producto terminado (módulo Producción)
+export const unidadInsumo = pgEnum("unidad_insumo", ["kg", "u"]);
+
+export const motivoBaja = pgEnum("motivo_baja_insumo", [
+  "vencido",
+  "secado",
+  "no_reutilizable",
+  "rotura",
+  "ajuste_inventario",
 ]);
 
-export const estadoOrdenProduccion = pgEnum("estado_orden_produccion", [
-  "borrador",
-  "en_proceso",
-  "completada",
+export const estadoOrden = pgEnum("estado_orden_produccion", [
+  "planificada",
+  "cerrada",
   "anulada",
 ]);
 
-/* ── Perfiles (espejo de auth.users) ───────────────────────── */
+export const medioPago = pgEnum("medio_pago", [
+  "efectivo",
+  "transferencia",
+  "mercado_pago",
+  "tienda_nube",
+  "credito",
+]);
+
+/**
+ * Tipos de movimiento (spec §3.5). El tipo define solo: si descuenta stock y
+ * cómo impacta el EERR. `produccion` la genera Producción, no el usuario.
+ */
+export const tipoMovimiento = pgEnum("tipo_movimiento", [
+  "venta",
+  "venta_consignacion",
+  "consignacion",
+  "devolucion_consignacion",
+  "canje",
+  "presentacion",
+  "regalo",
+  "rotura",
+  "sorteo",
+  "tester",
+  "co_branding",
+  "influencer",
+  "prueba",
+  "ajuste",
+  "produccion",
+]);
+
+export const tipoCuenta = pgEnum("tipo_cuenta", [
+  "activo",
+  "pasivo",
+  "pn",
+  "rpos",
+  "rneg",
+]);
+
+/* ── Perfiles / catálogo base ──────────────────────────────── */
 
 export const perfiles = pgTable("perfiles", {
-  // Igual al id de auth.users. La FK a auth.users se define en la migración SQL.
-  id: uuid("id").primaryKey(),
+  id: uuid("id").primaryKey(), // = auth.users.id (FK en setup.sql)
   nombre: text("nombre").notNull(),
   rol: rolUsuario("rol").notNull().default("lectura"),
   activo: boolean("activo").notNull().default(true),
   ...timestamps,
 });
 
-/* ── Catálogo ──────────────────────────────────────────────── */
-
 export const rubros = pgTable("rubros", {
   id: uuid("id").primaryKey().defaultRandom(),
   nombre: text("nombre").notNull().unique(),
-  activo: boolean("activo").notNull().default(true),
-  ...timestamps,
-});
-
-export const productos = pgTable("productos", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  sku: text("sku").notNull().unique(),
-  nombre: text("nombre").notNull(),
-  rubroId: uuid("rubro_id").references(() => rubros.id, {
-    onDelete: "set null",
-  }),
-  precioLista: numeric("precio_lista", { precision: 12, scale: 2 })
-    .notNull()
-    .default("0"),
-  online: boolean("online").notNull().default(false),
-  activo: boolean("activo").notNull().default(true),
-  /** true = materia prima / insumo; false = producto terminado. */
-  esInsumo: boolean("es_insumo").notNull().default(false),
-  /** Ruta del archivo en Supabase Storage (bucket `productos`). */
-  fotoPath: text("foto_path"),
-  ...timestamps,
-});
-
-/**
- * Variante = presentación concreta de un producto.
- * Reemplaza el modelo "talle / color" heredado del club por
- * "presentación / fragancia" (ambos opcionales).
- */
-export const variantes = pgTable("variantes", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  productoId: uuid("producto_id")
-    .notNull()
-    .references(() => productos.id, { onDelete: "cascade" }),
-  nombre: text("nombre").notNull(), // ej: "250 ml"
-  presentacion: text("presentacion"), // ej: "250 ml", "1 L"
-  fragancia: text("fragancia"), // ej: "neutra", "lavanda"
-  stock: integer("stock").notNull().default(0),
-  stockMin: integer("stock_min").notNull().default(0),
-  costoPromedio: numeric("costo_promedio", { precision: 12, scale: 2 })
-    .notNull()
-    .default("0"),
-  activo: boolean("activo").notNull().default(true),
-  ...timestamps,
-}, (t) => [
-  // Invariante de stock: garantía a nivel base, además del chequeo en la app.
-  check("variantes_stock_no_negativo", sql`${t.stock} >= 0`),
-]);
-
-/* ── Terceros ──────────────────────────────────────────────── */
-
-export const clientes = pgTable("clientes", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  nombre: text("nombre").notNull(),
-  tipo: tipoCliente("tipo").notNull().default("particular"),
-  email: text("email"),
-  telefono: text("telefono"),
-  cuit: text("cuit"),
-  notas: text("notas"),
   activo: boolean("activo").notNull().default(true),
   ...timestamps,
 });
@@ -154,46 +133,258 @@ export const proveedores = pgTable("proveedores", {
   ...timestamps,
 });
 
-/* ── Movimientos ───────────────────────────────────────────── */
-
-/** Medios de pago (Efectivo, Transferencia, Mercado Pago, Crédito…). */
-export const mediosPago = pgTable("medios_pago", {
+export const clientes = pgTable("clientes", {
   id: uuid("id").primaryKey().defaultRandom(),
-  nombre: text("nombre").notNull().unique(),
-  esCredito: boolean("es_credito").notNull().default(false),
-  /** Cuenta contable que se debita/credita (Caja, Banco…). Null si es crédito. */
-  cuentaId: uuid("cuenta_id").references(() => planCuentas.id, {
-    onDelete: "set null",
-  }),
+  nombre: text("nombre").notNull(),
+  tipo: tipoCliente("tipo").notNull().default("particular"),
+  email: text("email"),
+  telefono: text("telefono"),
+  cuit: text("cuit"),
+  notas: text("notas"),
   activo: boolean("activo").notNull().default(true),
   ...timestamps,
 });
 
-export const movimientos = pgTable("movimientos", {
+/* ── Productos e insumos ───────────────────────────────────── */
+
+/**
+ * Un producto es su presentación (no hay variantes). Un insumo es un producto
+ * con `es_insumo = true` y usa las columnas de insumo (reutilizable, vence,
+ * unidad). `ppp` lo mantienen Producción (terminados) y las compras (insumos).
+ */
+export const productos = pgTable("productos", {
   id: uuid("id").primaryKey().defaultRandom(),
-  tipo: tipoMovimiento("tipo").notNull(),
-  fecha: date("fecha").notNull().defaultNow(),
-  clienteId: uuid("cliente_id").references(() => clientes.id, {
+  sku: text("sku").notNull().unique(),
+  nombre: text("nombre").notNull(),
+  rubroId: uuid("rubro_id").references(() => rubros.id, {
     onDelete: "set null",
   }),
+  presentacion: text("presentacion"), // "250 ml" / "60 g"
+  stockMinimo: integer("stock_minimo").notNull().default(0),
+  online: boolean("online").notNull().default(false),
+  esInsumo: boolean("es_insumo").notNull().default(false),
+  activo: boolean("activo").notNull().default(true),
+  /** Costo promedio ponderado móvil. */
+  ppp: money("ppp"),
+  fotoPath: text("foto_path"),
+  // Solo insumos:
+  reutilizable: boolean("reutilizable").notNull().default(false),
+  vence: boolean("vence").notNull().default(false),
+  unidad: unidadInsumo("unidad"),
+  proveedorHabitualId: uuid("proveedor_habitual_id").references(
+    () => proveedores.id,
+    { onDelete: "set null" },
+  ),
+  ...timestamps,
+});
+
+/* ── Recetas (físico puro, versionadas con vigencia) ───────── */
+
+export const recetas = pgTable("recetas", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  productoId: uuid("producto_id")
+    .notNull()
+    .references(() => productos.id, { onDelete: "cascade" }),
+  numero: integer("numero").notNull().default(1),
+  vigenteDesde: date("vigente_desde").notNull().defaultNow(),
+  vigenteHasta: date("vigente_hasta"), // null = vigente
+  notas: text("notas"),
+  ...timestamps,
+});
+
+export const recetaLineas = pgTable("receta_lineas", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  recetaId: uuid("receta_id")
+    .notNull()
+    .references(() => recetas.id, { onDelete: "cascade" }),
+  insumoId: uuid("insumo_id")
+    .notNull()
+    .references(() => productos.id, { onDelete: "restrict" }),
+  cantidadPorUnidad: qty("cantidad_por_unidad"),
+  unidad: unidadInsumo("unidad").notNull().default("kg"),
+});
+
+/* ── Lotes (dato maestro) ──────────────────────────────────── */
+
+export const lotes = pgTable("lotes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  nombre: text("nombre").notNull().unique(),
+  fecha: date("fecha").notNull().defaultNow(),
+  /** Un lote puede abarcar los dos productos. */
+  productoId: uuid("producto_id").references(() => productos.id, {
+    onDelete: "set null",
+  }),
+  ...timestamps,
+});
+
+/* ── Compras y bajas de insumos ────────────────────────────── */
+
+export const comprasInsumo = pgTable("compras_insumo", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  fecha: date("fecha").notNull().defaultNow(),
   proveedorId: uuid("proveedor_id").references(() => proveedores.id, {
     onDelete: "set null",
   }),
-  medioPagoId: uuid("medio_pago_id").references(() => mediosPago.id, {
-    onDelete: "set null",
-  }),
-  /** Total en pesos. Puede ser 0 para regalo / presentación / rotura. */
-  total: numeric("total", { precision: 12, scale: 2 }).notNull().default("0"),
-  notas: text("notas"),
-  /**
-   * Si la venta proviene de una consignación (módulo H), para contabilidad.
-   * Sin FK a consignaciones a propósito: evita el ciclo con `consignaciones`,
-   * que ya referencia a `movimientos` por `movimiento_id`.
-   */
-  consignacionId: uuid("consignacion_id"),
+  loteId: uuid("lote_id").references(() => lotes.id, { onDelete: "set null" }),
+  total: money("total"),
   creadoPor: uuid("creado_por").references(() => perfiles.id, {
     onDelete: "set null",
   }),
+  ...timestamps,
+});
+
+export const compraInsumoLineas = pgTable("compra_insumo_lineas", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  compraId: uuid("compra_id")
+    .notNull()
+    .references(() => comprasInsumo.id, { onDelete: "cascade" }),
+  insumoId: uuid("insumo_id")
+    .notNull()
+    .references(() => productos.id, { onDelete: "restrict" }),
+  cantidad: qty("cantidad"),
+  costoTotal: money("costo_total"),
+  costoUnitario: money("costo_unitario"),
+  vencimiento: date("vencimiento"),
+});
+
+export const bajasInsumo = pgTable("bajas_insumo", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  fecha: date("fecha").notNull().defaultNow(),
+  insumoId: uuid("insumo_id")
+    .notNull()
+    .references(() => productos.id, { onDelete: "restrict" }),
+  cantidad: qty("cantidad"),
+  motivo: motivoBaja("motivo").notNull(),
+  monto: money("monto"), // cantidad × ppp al momento de la baja
+  loteId: uuid("lote_id").references(() => lotes.id, { onDelete: "set null" }),
+  /** Seteado si la baja fue automática al cerrar una orden (sobrante). */
+  ordenId: uuid("orden_id").references((): AnyPgColumn => ordenesProduccion.id, {
+    onDelete: "set null",
+  }),
+  creadoPor: uuid("creado_por").references(() => perfiles.id, {
+    onDelete: "set null",
+  }),
+  ...timestamps,
+});
+
+/* ── Producción ────────────────────────────────────────────── */
+
+export const preciosFabricacion = pgTable("precios_fabricacion", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  /** La fábrica cobra un monto por lote, sin importar unidades. */
+  montoPorLote: money("monto_por_lote"),
+  vigenteDesde: date("vigente_desde").notNull().defaultNow(),
+  vigenteHasta: date("vigente_hasta"),
+  ...timestamps,
+});
+
+export const ordenesProduccion = pgTable("ordenes_produccion", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  productoId: uuid("producto_id")
+    .notNull()
+    .references(() => productos.id, { onDelete: "restrict" }),
+  loteId: uuid("lote_id")
+    .notNull()
+    .references(() => lotes.id, { onDelete: "restrict" }),
+  recetaId: uuid("receta_id")
+    .notNull()
+    .references(() => recetas.id, { onDelete: "restrict" }),
+  estado: estadoOrden("estado").notNull().default("planificada"),
+  fechaPrevista: date("fecha_prevista").notNull().defaultNow(),
+  fechaCierre: date("fecha_cierre"),
+  unidadesPlanificadas: integer("unidades_planificadas").notNull(),
+  unidadesObtenidas: integer("unidades_obtenidas"),
+  fabricacionCotizada: money("fabricacion_cotizada"),
+  fabricacionCobrada: numeric("fabricacion_cobrada", { precision: 14, scale: 2 }),
+  costoMp: numeric("costo_mp", { precision: 14, scale: 2 }),
+  costoTotal: numeric("costo_total", { precision: 14, scale: 2 }),
+  costoUnitario: numeric("costo_unitario", { precision: 14, scale: 2 }),
+  desvioMp: money("desvio_mp"),
+  desvioFabricacion: money("desvio_fabricacion"),
+  movimientoEntradaId: uuid("movimiento_entrada_id").references(
+    (): AnyPgColumn => movimientos.id,
+    { onDelete: "set null" },
+  ),
+  notas: text("notas"),
+  creadoPor: uuid("creado_por").references(() => perfiles.id, {
+    onDelete: "set null",
+  }),
+  ...timestamps,
+});
+
+export const ordenLineas = pgTable("orden_lineas", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  ordenId: uuid("orden_id")
+    .notNull()
+    .references(() => ordenesProduccion.id, { onDelete: "cascade" }),
+  insumoId: uuid("insumo_id")
+    .notNull()
+    .references(() => productos.id, { onDelete: "restrict" }),
+  cantidadEstandar: qty("cantidad_estandar"),
+  consumoTeorico: qty("consumo_teorico"),
+  consumoReal: numeric("consumo_real", { precision: 14, scale: 4 }),
+  pppAlCierre: numeric("ppp_al_cierre", { precision: 14, scale: 2 }),
+  desvioFisico: qty("desvio_fisico"),
+  desvioMonto: money("desvio_monto"),
+});
+
+/* ── Stock por lote (materializado, derivado de movimientos) ─ */
+
+export const stockLotes = pgTable(
+  "stock_lotes",
+  {
+    productoId: uuid("producto_id")
+      .notNull()
+      .references(() => productos.id, { onDelete: "cascade" }),
+    loteId: uuid("lote_id")
+      .notNull()
+      .references(() => lotes.id, { onDelete: "cascade" }),
+    unidadesEnDeposito: integer("unidades_en_deposito").notNull().default(0),
+    ...timestamps,
+  },
+  (t) => [
+    primaryKey({ columns: [t.productoId, t.loteId] }),
+    check("stock_lotes_no_negativo", sql`${t.unidadesEnDeposito} >= 0`),
+  ],
+);
+
+/* ── Movimientos ───────────────────────────────────────────── */
+
+export const movimientos = pgTable("movimientos", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  fecha: date("fecha").notNull().defaultNow(),
+  tipo: tipoMovimiento("tipo").notNull(),
+  clienteId: uuid("cliente_id").references(() => clientes.id, {
+    onDelete: "set null",
+  }),
+  medioPago: medioPago("medio_pago"),
+  observaciones: text("observaciones"),
+  creadoPor: uuid("creado_por").references(() => perfiles.id, {
+    onDelete: "set null",
+  }),
+  ...timestamps,
+});
+
+export const consignaciones = pgTable("consignaciones", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  fecha: date("fecha").notNull().defaultNow(),
+  vence: date("vence").notNull(),
+  clienteId: uuid("cliente_id")
+    .notNull()
+    .references(() => clientes.id, { onDelete: "restrict" }),
+  productoId: uuid("producto_id")
+    .notNull()
+    .references(() => productos.id, { onDelete: "restrict" }),
+  loteId: uuid("lote_id")
+    .notNull()
+    .references(() => lotes.id, { onDelete: "restrict" }),
+  entregadas: integer("entregadas").notNull(),
+  vendidas: integer("vendidas").notNull().default(0),
+  devueltas: integer("devueltas").notNull().default(0),
+  movimientoOrigenId: uuid("movimiento_origen_id").references(
+    () => movimientos.id,
+    { onDelete: "set null" },
+  ),
   ...timestamps,
 });
 
@@ -202,57 +393,34 @@ export const movimientoItems = pgTable("movimiento_items", {
   movimientoId: uuid("movimiento_id")
     .notNull()
     .references(() => movimientos.id, { onDelete: "cascade" }),
-  varianteId: uuid("variante_id")
+  productoId: uuid("producto_id")
     .notNull()
-    .references(() => variantes.id, { onDelete: "restrict" }),
+    .references(() => productos.id, { onDelete: "restrict" }),
+  /** Puede ser negativa en ajuste. */
   cantidad: integer("cantidad").notNull(),
-  precioUnit: numeric("precio_unit", { precision: 12, scale: 2 })
-    .notNull()
-    .default("0"),
-  costoUnit: numeric("costo_unit", { precision: 12, scale: 2 })
-    .notNull()
-    .default("0"),
-});
-
-/* ── Cuentas corrientes y consignaciones (Fase 2) ──────────── */
-
-export const ccEntidadTipo = pgEnum("cc_entidad_tipo", ["cliente", "proveedor"]);
-
-/** Asientos de cuenta corriente de clientes y proveedores. */
-export const ccMovimientos = pgTable("cc_movimientos", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  entidadTipo: ccEntidadTipo("entidad_tipo").notNull(),
-  entidadId: uuid("entidad_id").notNull(),
-  fecha: date("fecha").notNull().defaultNow(),
-  debe: numeric("debe", { precision: 12, scale: 2 }).notNull().default("0"),
-  haber: numeric("haber", { precision: 12, scale: 2 }).notNull().default("0"),
-  concepto: text("concepto"),
-  movimientoId: uuid("movimiento_id").references(() => movimientos.id, {
+  precioConIva: numeric("precio_con_iva", { precision: 14, scale: 2 }),
+  ingresoNeto: money("ingreso_neto"),
+  costo: money("costo"),
+  consignacionId: uuid("consignacion_id").references(() => consignaciones.id, {
     onDelete: "set null",
   }),
-  ...timestamps,
 });
 
-export const estadoConsignacion = pgEnum("estado_consignacion", [
-  "pendiente",
-  "vendido",
-  "devuelto",
-]);
+export const movimientoItemLotes = pgTable("movimiento_item_lotes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  itemId: uuid("item_id")
+    .notNull()
+    .references(() => movimientoItems.id, { onDelete: "cascade" }),
+  loteId: uuid("lote_id")
+    .notNull()
+    .references(() => lotes.id, { onDelete: "restrict" }),
+  cantidad: integer("cantidad").notNull(),
+});
 
-/* ── Contabilidad (Módulo I) ───────────────────────────────── */
+/* ── Contabilidad (Fase 2, dormida en Fase 4) ──────────────── */
 
-export const tipoCuenta = pgEnum("tipo_cuenta", [
-  "activo",
-  "pasivo",
-  "pn",
-  "rpos",
-  "rneg",
-]);
-
-/** Plan de cuentas: catálogo de cuentas contables. El seed viene en la migración. */
 export const planCuentas = pgTable("plan_cuentas", {
   id: uuid("id").primaryKey().defaultRandom(),
-  /** Código jerárquico, ej. "1.1.1". */
   codigo: text("codigo").notNull().unique(),
   nombre: text("nombre").notNull(),
   rubro: text("rubro").notNull(),
@@ -261,28 +429,18 @@ export const planCuentas = pgTable("plan_cuentas", {
   ...timestamps,
 });
 
-/**
- * Asiento contable (partida doble). Los asientos automáticos derivan de un
- * movimiento o de un pago de CC; los manuales no tienen `movimientoId`.
- * `borrador` permite asientos sin confirmar; `confirmado` es definitivo.
- */
 export const asientos = pgTable("asientos", {
   id: uuid("id").primaryKey().defaultRandom(),
   fecha: date("fecha").notNull().defaultNow(),
   descripcion: text("descripcion").notNull(),
-  /** Origen del asiento: "movimiento" | "cc-pago" | "manual". */
-  origen: text("origen").notNull(),
+  origen: text("origen").notNull().default("manual"),
   estado: text("estado").notNull().default("confirmado"),
-  movimientoId: uuid("movimiento_id").references(() => movimientos.id, {
-    onDelete: "cascade",
-  }),
   creadoPor: uuid("creado_por").references(() => perfiles.id, {
     onDelete: "set null",
   }),
   ...timestamps,
 });
 
-/** Líneas de un asiento: Σ debe = Σ haber por asiento confirmado. */
 export const asientoLineas = pgTable("asiento_lineas", {
   id: uuid("id").primaryKey().defaultRandom(),
   asientoId: uuid("asiento_id")
@@ -291,82 +449,9 @@ export const asientoLineas = pgTable("asiento_lineas", {
   cuentaId: uuid("cuenta_id")
     .notNull()
     .references(() => planCuentas.id, { onDelete: "restrict" }),
-  debe: numeric("debe", { precision: 12, scale: 2 }).notNull().default("0"),
-  haber: numeric("haber", { precision: 12, scale: 2 }).notNull().default("0"),
+  debe: money("debe"),
+  haber: money("haber"),
   concepto: text("concepto"),
-  ...timestamps,
-});
-
-/** Consignación: mercadería entregada a un cliente que se cobra cuando vende. */
-export const consignaciones = pgTable("consignaciones", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  movimientoId: uuid("movimiento_id")
-    .notNull()
-    .references(() => movimientos.id, { onDelete: "cascade" }),
-  clienteId: uuid("cliente_id")
-    .notNull()
-    .references(() => clientes.id, { onDelete: "cascade" }),
-  fecha: date("fecha").notNull().defaultNow(),
-  venceEl: date("vence_el").notNull(),
-  estado: estadoConsignacion("estado").notNull().default("pendiente"),
-  cierreMovimientoId: uuid("cierre_movimiento_id").references(
-    () => movimientos.id,
-    { onDelete: "set null" },
-  ),
-  ...timestamps,
-});
-
-/* ── Producción (Fase 3) ───────────────────────────────────── */
-
-/**
- * Receta / lista de materiales de una variante de producto terminado.
- * Al editar se desactiva la anterior y se crea una nueva (histórico).
- */
-export const recetas = pgTable("recetas", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  varianteTerminadoId: uuid("variante_terminado_id")
-    .notNull()
-    .references(() => variantes.id, { onDelete: "cascade" }),
-  /** Unidades de terminado que produce el lote base descripto en receta_items. */
-  rinde: integer("rinde").notNull().default(1),
-  activa: boolean("activa").notNull().default(true),
-  notas: text("notas"),
-  ...timestamps,
-});
-
-export const recetaItems = pgTable("receta_items", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  recetaId: uuid("receta_id")
-    .notNull()
-    .references(() => recetas.id, { onDelete: "cascade" }),
-  varianteInsumoId: uuid("variante_insumo_id")
-    .notNull()
-    .references(() => variantes.id, { onDelete: "restrict" }),
-  /** Consumo de este insumo por lote base (antes de merma). */
-  cantidad: numeric("cantidad", { precision: 14, scale: 4 }).notNull(),
-  /** Merma esperada, en %. Aumenta el consumo real. */
-  mermaPct: numeric("merma_pct", { precision: 5, scale: 2 })
-    .notNull()
-    .default("0"),
-});
-
-export const ordenesProduccion = pgTable("ordenes_produccion", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  varianteTerminadoId: uuid("variante_terminado_id")
-    .notNull()
-    .references(() => variantes.id, { onDelete: "restrict" }),
-  /** Unidades de terminado a producir. */
-  cantidad: integer("cantidad").notNull(),
-  estado: estadoOrdenProduccion("estado").notNull().default("borrador"),
-  fecha: date("fecha").notNull().defaultNow(),
-  /** Movimiento `produccion` generado al completar (null hasta entonces). */
-  movimientoId: uuid("movimiento_id").references(() => movimientos.id, {
-    onDelete: "set null",
-  }),
-  notas: text("notas"),
-  creadoPor: uuid("creado_por").references(() => perfiles.id, {
-    onDelete: "set null",
-  }),
   ...timestamps,
 });
 
@@ -377,10 +462,10 @@ export const auditoria = pgTable("auditoria", {
   actorId: uuid("actor_id").references(() => perfiles.id, {
     onDelete: "set null",
   }),
-  accion: text("accion").notNull(), // "crear" | "editar" | "borrar"
-  entidad: text("entidad").notNull(), // "producto" | "movimiento" | ...
+  accion: text("accion").notNull(),
+  entidad: text("entidad").notNull(),
   entidadId: uuid("entidad_id"),
-  datos: text("datos"), // snapshot JSON del cambio
+  datos: text("datos"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
@@ -393,15 +478,125 @@ export const productosRelations = relations(productos, ({ one, many }) => ({
     fields: [productos.rubroId],
     references: [rubros.id],
   }),
-  variantes: many(variantes),
+  proveedorHabitual: one(proveedores, {
+    fields: [productos.proveedorHabitualId],
+    references: [proveedores.id],
+  }),
+  recetas: many(recetas),
+  stockLotes: many(stockLotes),
 }));
 
-export const variantesRelations = relations(variantes, ({ one, many }) => ({
+export const recetasRelations = relations(recetas, ({ one, many }) => ({
   producto: one(productos, {
-    fields: [variantes.productoId],
+    fields: [recetas.productoId],
     references: [productos.id],
   }),
-  items: many(movimientoItems),
+  lineas: many(recetaLineas),
+}));
+
+export const recetaLineasRelations = relations(recetaLineas, ({ one }) => ({
+  receta: one(recetas, {
+    fields: [recetaLineas.recetaId],
+    references: [recetas.id],
+  }),
+  insumo: one(productos, {
+    fields: [recetaLineas.insumoId],
+    references: [productos.id],
+  }),
+}));
+
+export const lotesRelations = relations(lotes, ({ one, many }) => ({
+  producto: one(productos, {
+    fields: [lotes.productoId],
+    references: [productos.id],
+  }),
+  stockLotes: many(stockLotes),
+}));
+
+export const comprasInsumoRelations = relations(
+  comprasInsumo,
+  ({ one, many }) => ({
+    proveedor: one(proveedores, {
+      fields: [comprasInsumo.proveedorId],
+      references: [proveedores.id],
+    }),
+    lote: one(lotes, {
+      fields: [comprasInsumo.loteId],
+      references: [lotes.id],
+    }),
+    lineas: many(compraInsumoLineas),
+  }),
+);
+
+export const compraInsumoLineasRelations = relations(
+  compraInsumoLineas,
+  ({ one }) => ({
+    compra: one(comprasInsumo, {
+      fields: [compraInsumoLineas.compraId],
+      references: [comprasInsumo.id],
+    }),
+    insumo: one(productos, {
+      fields: [compraInsumoLineas.insumoId],
+      references: [productos.id],
+    }),
+  }),
+);
+
+export const bajasInsumoRelations = relations(bajasInsumo, ({ one }) => ({
+  insumo: one(productos, {
+    fields: [bajasInsumo.insumoId],
+    references: [productos.id],
+  }),
+  lote: one(lotes, { fields: [bajasInsumo.loteId], references: [lotes.id] }),
+  orden: one(ordenesProduccion, {
+    fields: [bajasInsumo.ordenId],
+    references: [ordenesProduccion.id],
+  }),
+}));
+
+export const ordenesProduccionRelations = relations(
+  ordenesProduccion,
+  ({ one, many }) => ({
+    producto: one(productos, {
+      fields: [ordenesProduccion.productoId],
+      references: [productos.id],
+    }),
+    lote: one(lotes, {
+      fields: [ordenesProduccion.loteId],
+      references: [lotes.id],
+    }),
+    receta: one(recetas, {
+      fields: [ordenesProduccion.recetaId],
+      references: [recetas.id],
+    }),
+    movimientoEntrada: one(movimientos, {
+      fields: [ordenesProduccion.movimientoEntradaId],
+      references: [movimientos.id],
+    }),
+    lineas: many(ordenLineas),
+  }),
+);
+
+export const ordenLineasRelations = relations(ordenLineas, ({ one }) => ({
+  orden: one(ordenesProduccion, {
+    fields: [ordenLineas.ordenId],
+    references: [ordenesProduccion.id],
+  }),
+  insumo: one(productos, {
+    fields: [ordenLineas.insumoId],
+    references: [productos.id],
+  }),
+}));
+
+export const stockLotesRelations = relations(stockLotes, ({ one }) => ({
+  producto: one(productos, {
+    fields: [stockLotes.productoId],
+    references: [productos.id],
+  }),
+  lote: one(lotes, {
+    fields: [stockLotes.loteId],
+    references: [lotes.id],
+  }),
 }));
 
 export const movimientosRelations = relations(movimientos, ({ one, many }) => ({
@@ -409,66 +604,69 @@ export const movimientosRelations = relations(movimientos, ({ one, many }) => ({
     fields: [movimientos.clienteId],
     references: [clientes.id],
   }),
-  proveedor: one(proveedores, {
-    fields: [movimientos.proveedorId],
-    references: [proveedores.id],
-  }),
-  medioPago: one(mediosPago, {
-    fields: [movimientos.medioPagoId],
-    references: [mediosPago.id],
-  }),
   creador: one(perfiles, {
     fields: [movimientos.creadoPor],
     references: [perfiles.id],
   }),
   items: many(movimientoItems),
-  consignacionOrigen: one(consignaciones, {
-    fields: [movimientos.consignacionId],
-    references: [consignaciones.id],
-  }),
 }));
 
-export const movimientoItemsRelations = relations(movimientoItems, ({ one }) => ({
-  movimiento: one(movimientos, {
-    fields: [movimientoItems.movimientoId],
-    references: [movimientos.id],
-  }),
-  variante: one(variantes, {
-    fields: [movimientoItems.varianteId],
-    references: [variantes.id],
-  }),
-}));
-
-export const ccMovimientosRelations = relations(
-  ccMovimientos,
-  ({ one }) => ({
+export const movimientoItemsRelations = relations(
+  movimientoItems,
+  ({ one, many }) => ({
     movimiento: one(movimientos, {
-      fields: [ccMovimientos.movimientoId],
+      fields: [movimientoItems.movimientoId],
+      references: [movimientos.id],
+    }),
+    producto: one(productos, {
+      fields: [movimientoItems.productoId],
+      references: [productos.id],
+    }),
+    consignacion: one(consignaciones, {
+      fields: [movimientoItems.consignacionId],
+      references: [consignaciones.id],
+    }),
+    lotes: many(movimientoItemLotes),
+  }),
+);
+
+export const movimientoItemLotesRelations = relations(
+  movimientoItemLotes,
+  ({ one }) => ({
+    item: one(movimientoItems, {
+      fields: [movimientoItemLotes.itemId],
+      references: [movimientoItems.id],
+    }),
+    lote: one(lotes, {
+      fields: [movimientoItemLotes.loteId],
+      references: [lotes.id],
+    }),
+  }),
+);
+
+export const consignacionesRelations = relations(
+  consignaciones,
+  ({ one }) => ({
+    cliente: one(clientes, {
+      fields: [consignaciones.clienteId],
+      references: [clientes.id],
+    }),
+    producto: one(productos, {
+      fields: [consignaciones.productoId],
+      references: [productos.id],
+    }),
+    lote: one(lotes, {
+      fields: [consignaciones.loteId],
+      references: [lotes.id],
+    }),
+    movimientoOrigen: one(movimientos, {
+      fields: [consignaciones.movimientoOrigenId],
       references: [movimientos.id],
     }),
   }),
 );
 
-export const consignacionesRelations = relations(consignaciones, ({ one }) => ({
-  movimiento: one(movimientos, {
-    fields: [consignaciones.movimientoId],
-    references: [movimientos.id],
-  }),
-  cliente: one(clientes, {
-    fields: [consignaciones.clienteId],
-    references: [clientes.id],
-  }),
-  cierreMovimiento: one(movimientos, {
-    fields: [consignaciones.cierreMovimientoId],
-    references: [movimientos.id],
-  }),
-}));
-
 export const asientosRelations = relations(asientos, ({ one, many }) => ({
-  movimiento: one(movimientos, {
-    fields: [asientos.movimientoId],
-    references: [movimientos.id],
-  }),
   creador: one(perfiles, {
     fields: [asientos.creadoPor],
     references: [perfiles.id],
@@ -486,40 +684,3 @@ export const asientoLineasRelations = relations(asientoLineas, ({ one }) => ({
     references: [planCuentas.id],
   }),
 }));
-
-export const recetasRelations = relations(recetas, ({ one, many }) => ({
-  varianteTerminado: one(variantes, {
-    fields: [recetas.varianteTerminadoId],
-    references: [variantes.id],
-  }),
-  items: many(recetaItems),
-}));
-
-export const recetaItemsRelations = relations(recetaItems, ({ one }) => ({
-  receta: one(recetas, {
-    fields: [recetaItems.recetaId],
-    references: [recetas.id],
-  }),
-  varianteInsumo: one(variantes, {
-    fields: [recetaItems.varianteInsumoId],
-    references: [variantes.id],
-  }),
-}));
-
-export const ordenesProduccionRelations = relations(
-  ordenesProduccion,
-  ({ one }) => ({
-    varianteTerminado: one(variantes, {
-      fields: [ordenesProduccion.varianteTerminadoId],
-      references: [variantes.id],
-    }),
-    movimiento: one(movimientos, {
-      fields: [ordenesProduccion.movimientoId],
-      references: [movimientos.id],
-    }),
-    creador: one(perfiles, {
-      fields: [ordenesProduccion.creadoPor],
-      references: [perfiles.id],
-    }),
-  }),
-);

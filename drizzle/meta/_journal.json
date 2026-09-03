@@ -5,43 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1788211739229,
-      "tag": "0000_daffy_synch",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1788273891486,
-      "tag": "0001_thick_doomsday",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1788273980924,
-      "tag": "0002_careful_betty_ross",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1788361123456,
-      "tag": "0003_cooing_sabretooth",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1788300592734,
-      "tag": "0004_unusual_leopardon",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1788303429273,
-      "tag": "0005_confused_kingpin",
+      "when": 1788464078439,
+      "tag": "0000_graceful_leo",
       "breakpoints": true
     }
   ]
