@@ -17,13 +17,20 @@ ver `supabase/reset.sql`). Detalle de cada paso en los mensajes de commit
   `/produccion`, `/stock`, `/movimientos`, `/consignaciones`, `/clientes`,
   `/reportes`, `/config/usuarios` → 200.
 
-## Pendiente de probar de punta a punta (con datos reales)
+## Probado de punta a punta (04/09/2026)
 
-El flujo completo del proceso (receta → compra de insumos → planificar orden
-→ cerrar orden → stock actualizado → movimiento de venta/consignación → EERR)
-no se ejecutó todavía contra la base real, solo se verificó que cada pantalla
-carga. Conviene correrlo una vez con datos de prueba antes de darle el sistema
-a Nati.
+Flujo completo ejecutado con Playwright contra la base real de producción:
+compra de insumos → planificar orden → cerrar orden (con rendimiento 96% y
+desvío de MP, no solo el caso trivial 100%) → stock actualizado por lote →
+venta (FIFO, IVA) → reflejado en Reportes (EERR). Todos los cálculos
+verificados a mano y correctos. Quedaron en la base, a pedido del dueño, como
+datos de prueba identificables: una compra de insumos, "Lote N.º 3 (test
+e2e)" de Crema y una venta a "Consumidor final (Tienda Nube)".
+
+En el mismo testing se encontró y corrigió un bug real: `fmtDate()`
+mostraba las fechas un día antes en el huso de Argentina (UTC-3) por parsear
+`"YYYY-MM-DD"` como medianoche UTC. Corregido en `src/lib/format.ts`
+(commit `bf84037`), ya desplegado.
 
 ## Fuera de esta fase (spec §7)
 
