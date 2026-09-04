@@ -7,9 +7,11 @@ import {
   ChartColumnIcon,
   ClipboardListIcon,
   FactoryIcon,
+  LandmarkIcon,
   LayoutDashboardIcon,
   PackageIcon,
   ShapesIcon,
+  TagIcon,
   TruckIcon,
   UserCogIcon,
   UsersIcon,
@@ -42,6 +44,7 @@ const NAV: { seccion: string; items: Item[] }[] = [
     items: [
       { href: "/productos", label: "Productos", icon: PackageIcon },
       { href: "/insumos", label: "Insumos", icon: BeakerIcon },
+      { href: "/precios", label: "Precios", icon: TagIcon },
       { href: "/clientes", label: "Clientes", icon: UsersIcon },
       { href: "/proveedores", label: "Proveedores", icon: TruckIcon },
     ],
@@ -54,6 +57,7 @@ const NAV: { seccion: string; items: Item[] }[] = [
     seccion: "Configuración",
     items: [
       { href: "/config/rubros", label: "Rubros", icon: ShapesIcon },
+      { href: "/costos-fijos", label: "Costos fijos", icon: LandmarkIcon },
       { href: "/config/usuarios", label: "Usuarios", icon: UserCogIcon },
     ],
   },

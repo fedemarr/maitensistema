@@ -66,6 +66,7 @@ declare
     'precios_fabricacion', 'ordenes_produccion', 'orden_lineas',
     'stock_lotes', 'movimientos', 'movimiento_items', 'movimiento_item_lotes',
     'consignaciones', 'plan_cuentas', 'asientos', 'asiento_lineas',
+    'costos_fijos', 'precios_venta',
     'auditoria'
   ];
 begin

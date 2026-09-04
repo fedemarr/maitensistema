@@ -6,6 +6,7 @@ import {
   listClientesActivos,
   listProductosVenta,
 } from "@/features/movimientos/queries";
+import { preciosVigentes } from "@/features/precios/queries";
 import { puedeEscribir, requireUser } from "@/lib/auth";
 
 import { MovimientoForm } from "../_components/movimiento-form";
@@ -26,10 +27,11 @@ export default async function NuevoMovimientoPage({
   if (!puedeEscribir(user.rol)) redirect("/movimientos");
 
   const sp = await searchParams;
-  const [productos, clientes, lotes] = await Promise.all([
+  const [productos, clientes, lotes, precios] = await Promise.all([
     listProductosVenta(),
     listClientesActivos(),
     listLotes(),
+    preciosVigentes(),
   ]);
 
   return (
@@ -47,6 +49,7 @@ export default async function NuevoMovimientoPage({
         productos={productos}
         clientes={clientes}
         lotes={lotes}
+        precios={precios}
         pre={{
           tipo: sp.tipo,
           clienteId: sp.cliente,

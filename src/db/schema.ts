@@ -105,6 +105,22 @@ export const tipoCuenta = pgEnum("tipo_cuenta", [
   "rneg",
 ]);
 
+export const categoriaCostoFijo = pgEnum("categoria_costo_fijo", [
+  "alquiler",
+  "sueldos",
+  "servicios",
+  "impuestos",
+  "marketing",
+  "seguros",
+  "otros",
+]);
+
+/** Dos listas de precio (D-04): retail y mayorista. */
+export const tipoListaPrecio = pgEnum("tipo_lista_precio", [
+  "retail",
+  "mayorista",
+]);
+
 /* ── Perfiles / catálogo base ──────────────────────────────── */
 
 export const perfiles = pgTable("perfiles", {
@@ -419,6 +435,36 @@ export const movimientoItemLotes = pgTable("movimiento_item_lotes", {
   cantidad: integer("cantidad").notNull(),
 });
 
+/* ── Costos fijos (mensuales, versionados con vigencia) ────── */
+
+export const costosFijos = pgTable("costos_fijos", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  concepto: text("concepto").notNull(),
+  categoria: categoriaCostoFijo("categoria").notNull().default("otros"),
+  montoMensual: money("monto_mensual"),
+  vigenteDesde: date("vigente_desde").notNull().defaultNow(),
+  vigenteHasta: date("vigente_hasta"), // null = vigente
+  notas: text("notas"),
+  creadoPor: uuid("creado_por").references(() => perfiles.id, {
+    onDelete: "set null",
+  }),
+  ...timestamps,
+});
+
+/* ── Lista de precios (retail / mayorista, versionada) ─────── */
+
+export const preciosVenta = pgTable("precios_venta", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  productoId: uuid("producto_id")
+    .notNull()
+    .references(() => productos.id, { onDelete: "cascade" }),
+  tipoLista: tipoListaPrecio("tipo_lista").notNull().default("retail"),
+  precioConIva: money("precio_con_iva"),
+  vigenteDesde: date("vigente_desde").notNull().defaultNow(),
+  vigenteHasta: date("vigente_hasta"), // null = vigente
+  ...timestamps,
+});
+
 /* ── Contabilidad (Fase 2, dormida en Fase 4) ──────────────── */
 
 export const planCuentas = pgTable("plan_cuentas", {
@@ -486,6 +532,14 @@ export const productosRelations = relations(productos, ({ one, many }) => ({
   }),
   recetas: many(recetas),
   stockLotes: many(stockLotes),
+  preciosVenta: many(preciosVenta),
+}));
+
+export const preciosVentaRelations = relations(preciosVenta, ({ one }) => ({
+  producto: one(productos, {
+    fields: [preciosVenta.productoId],
+    references: [productos.id],
+  }),
 }));
 
 export const recetasRelations = relations(recetas, ({ one, many }) => ({

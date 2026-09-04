@@ -11,6 +11,7 @@ import {
   productos,
   stockLotes,
 } from "@/db/schema";
+import { costosFijosDelMes, costosFijosPorMeses } from "@/features/costos-fijos/queries";
 
 export type MesEERR = {
   mes: string; // YYYY-MM
@@ -24,6 +25,8 @@ export type MesEERR = {
   salidasNoVenta: number;
   perdidaInsumos: number;
   antesCostosFijos: number;
+  costosFijos: number;
+  ebit: number;
 };
 
 export type FilaProducto = {
@@ -40,14 +43,21 @@ export type FilaProducto = {
 
 export type FilaTipo = { tipo: string; unidades: number; valorCosto: number };
 
+export type FilaCostoFijo = { categoria: string; monto: number };
+
 export type Reporte = {
   meses: MesEERR[];
   mesActual: string;
   porProducto: FilaProducto[];
   porTipo: FilaTipo[];
+  costosFijosPorCategoria: FilaCostoFijo[];
 };
 
-function calcMes(base: Omit<MesEERR, "bruto" | "margen" | "antesCostosFijos">): MesEERR {
+function calcMes(
+  base: Omit<MesEERR, "bruto" | "margen" | "antesCostosFijos" | "ebit"> & {
+    costosFijos: number;
+  },
+): MesEERR {
   const bruto = base.ingresos - base.cmv;
   const antes =
     bruto +
@@ -60,6 +70,7 @@ function calcMes(base: Omit<MesEERR, "bruto" | "margen" | "antesCostosFijos">): 
     bruto,
     margen: base.ingresos ? bruto / base.ingresos : null,
     antesCostosFijos: antes,
+    ebit: antes - base.costosFijos,
   };
 }
 
@@ -128,6 +139,7 @@ export async function getReporte(mes?: string): Promise<Reporte> {
   const oMap = new Map(otros.map((o) => [o.mes, o]));
   const dMap = new Map(desv.map((d) => [d.mes, d]));
   const bMap = new Map(bajas.map((b) => [b.mes, b]));
+  const cfMap = await costosFijosPorMeses(mesesOrdenados);
 
   const meses: MesEERR[] = mesesOrdenados.map((m) => {
     const v = vMap.get(m);
@@ -142,6 +154,7 @@ export async function getReporte(mes?: string): Promise<Reporte> {
       desvios: -(Number(d?.desvMp ?? 0) + Number(d?.desvFab ?? 0)),
       coBranding: Number(o?.cobrand ?? 0),
       salidasNoVenta: Number(o?.noVenta ?? 0),
+      costosFijos: cfMap.get(m) ?? 0,
       perdidaInsumos: Number(b?.monto ?? 0),
     });
   });
@@ -219,6 +232,8 @@ export async function getReporte(mes?: string): Promise<Reporte> {
     .where(sql`${movimientos.fecha} between ${desdeIso} and ${hastaIso}`)
     .groupBy(movimientos.tipo);
 
+  const cfMes = await costosFijosDelMes(mesActual);
+
   return {
     meses,
     mesActual,
@@ -228,5 +243,8 @@ export async function getReporte(mes?: string): Promise<Reporte> {
       unidades: Number(t.unidades),
       valorCosto: Number(t.valorCosto),
     })),
+    costosFijosPorCategoria: [...cfMes.porCategoria.entries()].map(
+      ([categoria, monto]) => ({ categoria, monto }),
+    ),
   };
 }

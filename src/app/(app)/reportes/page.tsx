@@ -16,6 +16,8 @@ import {
 } from "@/components/ui/table";
 import { getReporte } from "@/features/reportes/queries";
 import { TIPO_LABEL } from "@/features/movimientos/schema";
+import { CATEGORIA_LABEL } from "@/features/costos-fijos/schema";
+import type { CategoriaCostoFijo } from "@/features/costos-fijos/schema";
 import { requireUser } from "@/lib/auth";
 import { fmtMoney, fmtNumber } from "@/lib/format";
 
@@ -57,10 +59,13 @@ export default async function ReportesPage({
       salidasNoVenta: a.salidasNoVenta + m.salidasNoVenta,
       perdidaInsumos: a.perdidaInsumos + m.perdidaInsumos,
       antesCostosFijos: a.antesCostosFijos + m.antesCostosFijos,
+      costosFijos: a.costosFijos + m.costosFijos,
+      ebit: a.ebit + m.ebit,
     }),
     {
       unidades: 0, ingresos: 0, cmv: 0, bruto: 0, desvios: 0,
       coBranding: 0, salidasNoVenta: 0, perdidaInsumos: 0, antesCostosFijos: 0,
+      costosFijos: 0, ebit: 0,
     },
   );
 
@@ -96,6 +101,8 @@ export default async function ReportesPage({
     ["− Salidas no-venta a costo", -actual.salidasNoVenta],
     ["− Pérdida por insumos", -actual.perdidaInsumos],
     ["RESULTADO ANTES DE COSTOS FIJOS", actual.antesCostosFijos, true],
+    ["− Costos fijos del mes", -actual.costosFijos],
+    ["RESULTADO (EBIT)", actual.ebit, true],
   ];
 
   return (
@@ -104,7 +111,7 @@ export default async function ReportesPage({
         <div>
           <h1 className="text-2xl font-semibold">Reporte económico</h1>
           <p className="text-sm capitalize text-muted-foreground">
-            {mesLargo(r.mesActual)} · antes de costos fijos
+            {mesLargo(r.mesActual)} · resultado (EBIT): {fmtMoney(actual.ebit)}
           </p>
         </div>
         <div className="flex flex-wrap gap-1.5">
@@ -255,9 +262,7 @@ export default async function ReportesPage({
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">
-              Del bruto al resultado antes de costos fijos
-            </CardTitle>
+            <CardTitle className="text-base">Del bruto al EBIT</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             <Table>
@@ -278,10 +283,26 @@ export default async function ReportesPage({
                 ))}
               </TableBody>
             </Table>
-            <p className="p-3 text-xs text-muted-foreground">
-              Costos fijos: pendiente. Cuando exista el módulo, se restan acá y
-              este resultado pasa a ser el EBIT.
-            </p>
+            {r.costosFijosPorCategoria.length > 0 ? (
+              <p className="p-3 text-xs text-muted-foreground">
+                Costos fijos del mes por categoría:{" "}
+                {r.costosFijosPorCategoria
+                  .map(
+                    (c) =>
+                      `${CATEGORIA_LABEL[c.categoria as CategoriaCostoFijo] ?? c.categoria} ${fmtMoney(c.monto)}`,
+                  )
+                  .join(" · ")}
+                .
+              </p>
+            ) : (
+              <p className="p-3 text-xs text-muted-foreground">
+                Sin costos fijos cargados para este mes. Cargalos en{" "}
+                <Link href="/costos-fijos" className="underline">
+                  Costos fijos
+                </Link>
+                .
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -289,7 +310,6 @@ export default async function ReportesPage({
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Evolución mensual</CardTitle>
-          <p className="text-xs text-muted-foreground">Sin costos fijos.</p>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -317,6 +337,8 @@ export default async function ReportesPage({
                     ["− Salidas no-venta", (m) => fmtMoney(-m.salidasNoVenta), fmtMoney(-total.salidasNoVenta)],
                     ["− Pérdida insumos", (m) => fmtMoney(-m.perdidaInsumos), fmtMoney(-total.perdidaInsumos)],
                     ["ANTES DE COSTOS FIJOS", (m) => fmtMoney(m.antesCostosFijos), fmtMoney(total.antesCostosFijos)],
+                    ["− Costos fijos", (m) => fmtMoney(-m.costosFijos), fmtMoney(-total.costosFijos)],
+                    ["EBIT", (m) => fmtMoney(m.ebit), fmtMoney(total.ebit)],
                   ] as [string, (m: (typeof r.meses)[number]) => string, string | number][]
                 ).map(([label, fn, tot], i, arr) => (
                   <TableRow key={label}>

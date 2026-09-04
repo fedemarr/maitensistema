@@ -28,6 +28,8 @@ import {
   type TipoManual,
 } from "@/features/movimientos/schema";
 import { TIPO_LABEL as CLIENTE_TIPO_LABEL, tipoClienteEnum } from "@/features/clientes/schema";
+import type { ProductoConPrecios } from "@/features/precios/queries";
+import { TIPOS_CLIENTE_MAYORISTA } from "@/features/precios/schema";
 import { fmtMoney } from "@/lib/format";
 
 type Prod = { id: string; nombre: string; ppp: string };
@@ -41,11 +43,13 @@ export function MovimientoForm({
   productos,
   clientes,
   lotes,
+  precios,
   pre,
 }: {
   productos: Prod[];
   clientes: Cli[];
   lotes: Lote[];
+  precios: ProductoConPrecios[];
   pre?: {
     tipo?: string;
     clienteId?: string;
@@ -69,13 +73,23 @@ export function MovimientoForm({
   const [loteId, setLoteId] = useState("");
   const [obs, setObs] = useState("");
   const [items, setItems] = useState<
-    { key: string; productoId: string; cantidad: string; precio: string }[]
+    {
+      key: string;
+      productoId: string;
+      cantidad: string;
+      precio: string;
+      /** El precio vino de la sugerencia (no lo tocó la mano): se puede
+       * recalcular si cambia el producto o el cliente. Se apaga apenas la
+       * persona edita el campo a mano. */
+      precioAuto: boolean;
+    }[]
   >([
     {
       key: crypto.randomUUID(),
       productoId: pre?.productoId ?? productos[0]?.id ?? "",
       cantidad: pre?.cantidad ?? "1",
       precio: "",
+      precioAuto: true,
     },
   ]);
   const [saving, setSaving] = useState(false);
@@ -85,6 +99,44 @@ export function MovimientoForm({
     () => new Map(productos.map((p) => [p.id, Number(p.ppp)])),
     [productos],
   );
+
+  const precioMap = useMemo(
+    () =>
+      new Map(
+        precios.map((p) => [
+          p.productoId,
+          {
+            retail: p.retail ? Number(p.retail.precioConIva) : null,
+            mayorista: p.mayorista ? Number(p.mayorista.precioConIva) : null,
+          },
+        ]),
+      ),
+    [precios],
+  );
+
+  const tipoClienteActual = () => {
+    if (clienteId === NUEVO_CLI) return nuevoTipo;
+    return clientes.find((c) => c.id === clienteId)?.tipo ?? null;
+  };
+
+  /** Precio sugerido (retail o mayorista según el tipo de cliente actual). */
+  function precioSugerido(productoId: string, esMayorista: boolean): number | null {
+    const entry = precioMap.get(productoId);
+    if (!entry) return null;
+    return esMayorista ? (entry.mayorista ?? entry.retail) : entry.retail;
+  }
+
+  /** Recalcula el precio de los ítems que siguen en modo "sugerido" (no
+   * editados a mano) para el tipo de cliente actual. */
+  function recalcularPreciosAuto(esMayorista: boolean) {
+    setItems((is) =>
+      is.map((i) => {
+        if (!i.precioAuto || !i.productoId) return i;
+        const sugerido = precioSugerido(i.productoId, esMayorista);
+        return sugerido != null ? { ...i, precio: String(sugerido) } : i;
+      }),
+    );
+  }
 
   const resumen = useMemo(() => {
     let ing = 0;
@@ -217,9 +269,19 @@ export function MovimientoForm({
                 { label: "＋ Nuevo cliente…", value: NUEVO_CLI },
               ]}
               value={clienteId || SIN_CLI}
-              onValueChange={(v) =>
-                setClienteId(!v || v === SIN_CLI ? "" : String(v))
-              }
+              onValueChange={(v) => {
+                const nuevo = !v || v === SIN_CLI ? "" : String(v);
+                setClienteId(nuevo);
+                if (!regla.pidePrecio) return;
+                const tipoCli =
+                  nuevo === NUEVO_CLI
+                    ? nuevoTipo
+                    : (clientes.find((c) => c.id === nuevo)?.tipo ?? null);
+                const esMayorista = (
+                  TIPOS_CLIENTE_MAYORISTA as readonly string[]
+                ).includes(tipoCli ?? "");
+                recalcularPreciosAuto(esMayorista);
+              }}
             >
               <SelectTrigger className="w-full">
                 <SelectValue />
@@ -252,7 +314,15 @@ export function MovimientoForm({
                     value: t,
                   }))}
                   value={nuevoTipo}
-                  onValueChange={(v) => setNuevoTipo(v ?? "particular")}
+                  onValueChange={(v) => {
+                    const tipo = v ?? "particular";
+                    setNuevoTipo(tipo);
+                    if (!regla.pidePrecio) return;
+                    const esMayorista = (
+                      TIPOS_CLIENTE_MAYORISTA as readonly string[]
+                    ).includes(tipo);
+                    recalcularPreciosAuto(esMayorista);
+                  }}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue />
@@ -317,6 +387,7 @@ export function MovimientoForm({
                   productoId: productos[0]?.id ?? "",
                   cantidad: "1",
                   precio: "",
+                  precioAuto: true,
                 },
               ])
             }
@@ -332,7 +403,20 @@ export function MovimientoForm({
             <Select
               items={prodItems}
               value={it.productoId || null}
-              onValueChange={(v) => setItem(it.key, { productoId: v ?? "" })}
+              onValueChange={(v) => {
+                const productoId = v ?? "";
+                const esMayorista = (
+                  TIPOS_CLIENTE_MAYORISTA as readonly string[]
+                ).includes(tipoClienteActual() ?? "");
+                const sugerido =
+                  regla.pidePrecio && it.precioAuto && productoId
+                    ? precioSugerido(productoId, esMayorista)
+                    : null;
+                setItem(it.key, {
+                  productoId,
+                  ...(sugerido != null ? { precio: String(sugerido) } : {}),
+                });
+              }}
             >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Producto" />
@@ -358,7 +442,12 @@ export function MovimientoForm({
                 step="any"
                 placeholder="Precio + IVA / u"
                 value={it.precio}
-                onChange={(e) => setItem(it.key, { precio: e.target.value })}
+                onChange={(e) =>
+                  setItem(it.key, {
+                    precio: e.target.value,
+                    precioAuto: false,
+                  })
+                }
               />
             ) : (
               <span />
