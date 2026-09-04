@@ -42,12 +42,24 @@ de cliente, siempre editable). Probado E2E con Playwright contra producción;
 datos de prueba de este módulo ya limpiados de la base (a diferencia de los
 de Fase 4, que quedaron marcados "test e2e" a pedido del dueño).
 
+## Fase 6 — Cuenta corriente de clientes y proveedores (04/09/2026)
+
+Cierra otro pendiente del §7. Tabla `cc_movimientos` (ledger por tercero,
+cliente|proveedor). Venta con medio de pago Crédito → debe automático en
+la cta. cte. del cliente (por el total facturado con IVA). Compra de
+insumos con medio de pago Crédito (campo nuevo) → haber automático en la
+cta. cte. del proveedor. Fichas de cliente/proveedor con saldo, historial
+y botón Registrar cobro / Registrar pago; listados con columna de saldo.
+Probado E2E con Playwright, saldos correctos en cada paso. Reemplaza al
+`cc_movimientos` de Fase 2 (que quedó dormido, sin tocar).
+
 ## Fuera de esta fase (spec §7)
 
-Cuenta corriente real, integración Tienda Nube, facturación, canal de venta,
-edición de fichas, permisos granulares. Contabilidad de partida doble
-(Fase 2) y CC (Fase 2) quedan dormidas: sus tablas siguen ahí pero nada las
-alimenta desde Movimientos.
+Integración Tienda Nube, facturación (AFIP), canal de venta, edición de
+fichas, permisos granulares. Sin credenciales de Tiendanube ni de AFIP
+todavía — ver `docs/tiendanube-diseno.md` y `docs/afip-diseno.md`.
+Contabilidad de partida doble (Fase 2) queda dormida: su tabla sigue ahí
+pero nada la alimenta desde Movimientos.
 
 ## Cierre pendiente (igual que en fases anteriores)
 
