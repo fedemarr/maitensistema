@@ -32,12 +32,22 @@ mostraba las fechas un día antes en el huso de Argentina (UTC-3) por parsear
 `"YYYY-MM-DD"` como medianoche UTC. Corregido en `src/lib/format.ts`
 (commit `bf84037`), ya desplegado.
 
+## Fase 5 — Costos fijos + lista de precios (04/09/2026)
+
+Cierra dos de los pendientes del §7: costos fijos mensuales (`/costos-fijos`,
+versionados con vigencia, restan del resultado antes de costos fijos →
+**EBIT** en Reportes) y lista de precios retail/mayorista (`/precios`,
+versionada igual, precarga el precio en Movimientos → Venta según el tipo
+de cliente, siempre editable). Probado E2E con Playwright contra producción;
+datos de prueba de este módulo ya limpiados de la base (a diferencia de los
+de Fase 4, que quedaron marcados "test e2e" a pedido del dueño).
+
 ## Fuera de esta fase (spec §7)
 
-Lista de precios, costos fijos, cuenta corriente real, integración Tienda
-Nube, facturación, canal de venta, edición de fichas, permisos granulares.
-Contabilidad de partida doble (Fase 2) y CC (Fase 2) quedan dormidas: sus
-tablas siguen ahí pero nada las alimenta desde Movimientos.
+Cuenta corriente real, integración Tienda Nube, facturación, canal de venta,
+edición de fichas, permisos granulares. Contabilidad de partida doble
+(Fase 2) y CC (Fase 2) quedan dormidas: sus tablas siguen ahí pero nada las
+alimenta desde Movimientos.
 
 ## Cierre pendiente (igual que en fases anteriores)
 
