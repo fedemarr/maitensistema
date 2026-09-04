@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/table";
 import type { ClienteListItem } from "@/features/clientes/queries";
 import { TIPO_LABEL, tipoClienteEnum } from "@/features/clientes/schema";
+import { fmtMoney, fmtNumber } from "@/lib/format";
 
 const SIN_TIPO = "__none__";
 
@@ -91,7 +92,9 @@ export function ClientesList({
               <TableHead>Nombre</TableHead>
               <TableHead>Tipo</TableHead>
               <TableHead>Email</TableHead>
-              <TableHead>Teléfono</TableHead>
+              <TableHead className="text-right">Compró (u)</TableHead>
+              <TableHead className="text-right">Ingresos</TableHead>
+              <TableHead className="text-right">En consig.</TableHead>
               <TableHead>Estado</TableHead>
             </TableRow>
           </TableHeader>
@@ -99,7 +102,7 @@ export function ClientesList({
             {filtrados.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={5}
+                  colSpan={7}
                   className="py-8 text-center text-sm text-muted-foreground"
                 >
                   {clientes.length === 0
@@ -120,7 +123,15 @@ export function ClientesList({
                   </TableCell>
                   <TableCell>{TIPO_LABEL[c.tipo as keyof typeof TIPO_LABEL] ?? c.tipo}</TableCell>
                   <TableCell className="text-xs">{c.email ?? "—"}</TableCell>
-                  <TableCell className="text-xs">{c.telefono ?? "—"}</TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {c.comproUnidades ? fmtNumber(c.comproUnidades) : "—"}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {c.ingresos ? fmtMoney(c.ingresos) : "—"}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {c.enConsignacion ? fmtNumber(c.enConsignacion) : "—"}
+                  </TableCell>
                   <TableCell>
                     {c.activo ? (
                       <Badge variant="secondary">Activo</Badge>
