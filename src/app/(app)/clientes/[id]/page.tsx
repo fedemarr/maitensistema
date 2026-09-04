@@ -24,6 +24,7 @@ import { puedeEscribir, requireUser } from "@/lib/auth";
 import { fmtDate, fmtMoney, fmtNumber } from "@/lib/format";
 
 import { ClienteAcciones } from "./_acciones";
+import { CcCliente } from "./_cc";
 
 export default async function FichaClientePage({
   params,
@@ -95,7 +96,10 @@ export default async function FichaClientePage({
           {
             k: "Último movimiento",
             v: stats.ultimo ? fmtDate(stats.ultimo) : "—",
-            d: "Saldo cta. cte.: próximo",
+            d:
+              stats.saldoCc > 0
+                ? `Nos debe ${fmtMoney(stats.saldoCc)}`
+                : "Cta. cte. al día",
           },
         ].map((t) => (
           <Card key={t.k} className="gap-1">
@@ -123,6 +127,13 @@ export default async function FichaClientePage({
           <Dato label="Notas" value={cliente.notas} />
         </CardContent>
       </Card>
+
+      <CcCliente
+        clienteId={id}
+        saldo={stats.saldoCc}
+        historial={ficha.cc}
+        editable={editable}
+      />
 
       {ficha.consignaciones.length ? (
         <Card>

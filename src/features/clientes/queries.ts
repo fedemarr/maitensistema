@@ -12,6 +12,7 @@ import {
   movimientos,
   productos,
 } from "@/db/schema";
+import { historialCc, saldoEntidad, saldosPorTipo } from "@/features/cc/queries";
 
 const TIPOS_VENTA = ["venta", "venta_consignacion"] as const;
 
@@ -25,6 +26,7 @@ export type ClienteListItem = {
   comproUnidades: number;
   ingresos: number;
   enConsignacion: number;
+  saldoCc: number;
 };
 
 export async function listClientes(): Promise<ClienteListItem[]> {
@@ -76,11 +78,14 @@ export async function listClientes(): Promise<ClienteListItem[]> {
     consig.map((c) => [c.clienteId, Number(c.pend)]),
   );
 
+  const saldoMap = await saldosPorTipo("cliente");
+
   return base.map((c) => ({
     ...c,
     comproUnidades: ventaMap.get(c.id)?.u ?? 0,
     ingresos: ventaMap.get(c.id)?.ing ?? 0,
     enConsignacion: Math.max(0, consigMap.get(c.id) ?? 0),
+    saldoCc: saldoMap.get(c.id) ?? 0,
   }));
 }
 
@@ -147,6 +152,11 @@ export async function fichaCliente(id: string) {
     .where(eq(movimientos.clienteId, id))
     .orderBy(desc(movimientos.fecha));
 
+  const [saldoCc, cc] = await Promise.all([
+    saldoEntidad("cliente", id),
+    historialCc("cliente", id),
+  ]);
+
   const stats = {
     comproUnidades: 0,
     ingresos: 0,
@@ -157,6 +167,7 @@ export async function fichaCliente(id: string) {
     ),
     ultimo: movs[0]?.fecha ?? null,
     movimientos: movs.length,
+    saldoCc,
   };
   for (const m of movs) {
     if (m.tipo === "venta" || m.tipo === "venta_consignacion") {
@@ -178,6 +189,7 @@ export async function fichaCliente(id: string) {
       pendientes: c.entregadas - c.vendidas - c.devueltas,
     })),
     movimientos: movs,
+    cc,
     stats,
   };
 }

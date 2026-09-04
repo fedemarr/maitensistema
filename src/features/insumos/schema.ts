@@ -47,6 +47,14 @@ export const compraLineaInput = z.object({
   vencimiento: opt(10),
 });
 
+export const MEDIOS_PAGO_COMPRA = ["efectivo", "transferencia", "credito"] as const;
+export type MedioPagoCompra = (typeof MEDIOS_PAGO_COMPRA)[number];
+export const MEDIO_PAGO_COMPRA_LABEL: Record<MedioPagoCompra, string> = {
+  efectivo: "Efectivo",
+  transferencia: "Transferencia",
+  credito: "Crédito (cta. cte. proveedor)",
+};
+
 export const compraInput = z.object({
   fecha: z.string().min(1, "La fecha es obligatoria."),
   proveedorId: z
@@ -58,6 +66,7 @@ export const compraInput = z.object({
     .optional()
     .transform((v) => (v ? v : null)),
   nuevoLoteNombre: opt(80),
+  medioPago: z.enum(MEDIOS_PAGO_COMPRA).default("efectivo"),
   lineas: z.array(compraLineaInput).min(1, "Cargá al menos una línea."),
 });
 export type CompraInput = z.infer<typeof compraInput>;

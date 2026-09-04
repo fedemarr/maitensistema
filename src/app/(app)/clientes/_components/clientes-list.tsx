@@ -95,6 +95,7 @@ export function ClientesList({
               <TableHead className="text-right">Compró (u)</TableHead>
               <TableHead className="text-right">Ingresos</TableHead>
               <TableHead className="text-right">En consig.</TableHead>
+              <TableHead className="text-right">Saldo cta. cte.</TableHead>
               <TableHead>Estado</TableHead>
             </TableRow>
           </TableHeader>
@@ -102,7 +103,7 @@ export function ClientesList({
             {filtrados.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={7}
+                  colSpan={8}
                   className="py-8 text-center text-sm text-muted-foreground"
                 >
                   {clientes.length === 0
@@ -131,6 +132,15 @@ export function ClientesList({
                   </TableCell>
                   <TableCell className="text-right tabular-nums">
                     {c.enConsignacion ? fmtNumber(c.enConsignacion) : "—"}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {c.saldoCc > 0 ? (
+                      <span className="text-destructive">
+                        {fmtMoney(c.saldoCc)}
+                      </span>
+                    ) : (
+                      "—"
+                    )}
                   </TableCell>
                   <TableCell>
                     {c.activo ? (

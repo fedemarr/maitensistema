@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import {
   bajasInsumo,
+  ccMovimientos,
   compraInsumoLineas,
   comprasInsumo,
   lotes,
@@ -145,6 +146,12 @@ export async function registrarCompra(
   if (new Set(insumoIds).size !== insumoIds.length) {
     return { ok: false, error: "Hay un insumo repetido en la compra." };
   }
+  if (data.medioPago === "credito" && !data.proveedorId) {
+    return {
+      ok: false,
+      error: "Una compra a crédito necesita indicar el proveedor.",
+    };
+  }
 
   const compraId = await db.transaction(async (tx) => {
     let loteId = data.loteId;
@@ -165,6 +172,7 @@ export async function registrarCompra(
         proveedorId: data.proveedorId,
         loteId: loteId ?? null,
         total: String(round2(total)),
+        medioPago: data.medioPago,
         creadoPor: user.id,
       })
       .returning({ id: comprasInsumo.id });
@@ -205,10 +213,28 @@ export async function registrarCompra(
         .where(eq(productos.id, l.insumoId));
     }
 
+    // Compra a crédito: queda en la cuenta corriente del proveedor.
+    if (data.medioPago === "credito" && data.proveedorId) {
+      await tx.insert(ccMovimientos).values({
+        entidadTipo: "proveedor",
+        entidadId: data.proveedorId,
+        fecha: data.fecha,
+        concepto: "Compra de insumos a crédito",
+        debe: "0",
+        haber: String(round2(total)),
+        origen: "compra_credito",
+        medioPago: "credito",
+        compraId: compra.id,
+        creadoPor: user.id,
+      });
+    }
+
     return compra.id;
   });
 
   if (typeof compraId !== "string") return compraId;
+
+  if (data.proveedorId) revalidatePath(`/proveedores/${data.proveedorId}`);
 
   await registrarAuditoria({
     actorId: user.id,

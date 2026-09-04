@@ -14,6 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { ProveedorListItem } from "@/features/proveedores/queries";
+import { fmtMoney } from "@/lib/format";
 
 export function ProveedoresList({
   proveedores,
@@ -52,6 +53,7 @@ export function ProveedoresList({
               <TableHead>CUIT</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Teléfono</TableHead>
+              <TableHead className="text-right">Saldo cta. cte.</TableHead>
               <TableHead>Estado</TableHead>
             </TableRow>
           </TableHeader>
@@ -59,7 +61,7 @@ export function ProveedoresList({
             {filtrados.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={5}
+                  colSpan={6}
                   className="py-8 text-center text-sm text-muted-foreground"
                 >
                   {proveedores.length === 0
@@ -81,6 +83,15 @@ export function ProveedoresList({
                   <TableCell className="text-xs">{p.cuit ?? "—"}</TableCell>
                   <TableCell className="text-xs">{p.email ?? "—"}</TableCell>
                   <TableCell className="text-xs">{p.telefono ?? "—"}</TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {p.saldoCc > 0 ? (
+                      <span className="text-destructive">
+                        {fmtMoney(p.saldoCc)}
+                      </span>
+                    ) : (
+                      "—"
+                    )}
+                  </TableCell>
                   <TableCell>
                     {p.activo ? (
                       <Badge variant="secondary">Activo</Badge>

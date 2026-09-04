@@ -9,10 +9,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { getProveedor } from "@/features/proveedores/queries";
+import { fichaProveedor, getProveedor } from "@/features/proveedores/queries";
 import { puedeEscribir, requireUser } from "@/lib/auth";
 
 import { ProveedorAcciones } from "./_acciones";
+import { CcProveedor } from "./_cc";
 
 export default async function FichaProveedorPage({
   params,
@@ -25,6 +26,7 @@ export default async function FichaProveedorPage({
   if (!proveedor) notFound();
 
   const editable = puedeEscribir(user.rol);
+  const ficha = await fichaProveedor(id);
 
   return (
     <div className="mx-auto max-w-4xl space-y-5">
@@ -89,6 +91,14 @@ export default async function FichaProveedorPage({
           </div>
         </CardContent>
       </Card>
+
+      <CcProveedor
+        proveedorId={id}
+        saldo={ficha.saldoCc}
+        historial={ficha.cc}
+        compras={ficha.compras}
+        editable={editable}
+      />
     </div>
   );
 }

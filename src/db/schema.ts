@@ -121,6 +121,16 @@ export const tipoListaPrecio = pgEnum("tipo_lista_precio", [
   "mayorista",
 ]);
 
+export const entidadCc = pgEnum("entidad_cc", ["cliente", "proveedor"]);
+
+export const origenCc = pgEnum("origen_cc", [
+  "venta_credito",
+  "compra_credito",
+  "cobro",
+  "pago",
+  "ajuste",
+]);
+
 /* ── Perfiles / catálogo base ──────────────────────────────── */
 
 export const perfiles = pgTable("perfiles", {
@@ -245,6 +255,8 @@ export const comprasInsumo = pgTable("compras_insumo", {
   }),
   loteId: uuid("lote_id").references(() => lotes.id, { onDelete: "set null" }),
   total: money("total"),
+  /** Si es "credito", registra el saldo en la cuenta corriente del proveedor. */
+  medioPago: medioPago("medio_pago").notNull().default("efectivo"),
   creadoPor: uuid("creado_por").references(() => perfiles.id, {
     onDelete: "set null",
   }),
@@ -465,6 +477,36 @@ export const preciosVenta = pgTable("precios_venta", {
   ...timestamps,
 });
 
+/* ── Cuenta corriente (clientes y proveedores) ─────────────── */
+
+/**
+ * Ledger por tercero (`entidad_tipo` + `entidad_id`, sin FK física — puede
+ * apuntar a `clientes.id` o `proveedores.id`). Convención (D-14 extendida):
+ * cliente → saldo = Σdebe − Σhaber (positivo = nos debe); proveedor →
+ * saldo = Σhaber − Σdebe (positivo = les debemos).
+ */
+export const ccMovimientos = pgTable("cc_movimientos", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  entidadTipo: entidadCc("entidad_tipo").notNull(),
+  entidadId: uuid("entidad_id").notNull(),
+  fecha: date("fecha").notNull().defaultNow(),
+  concepto: text("concepto").notNull(),
+  debe: money("debe"),
+  haber: money("haber"),
+  origen: origenCc("origen").notNull().default("ajuste"),
+  medioPago: medioPago("medio_pago"),
+  movimientoId: uuid("movimiento_id").references(() => movimientos.id, {
+    onDelete: "set null",
+  }),
+  compraId: uuid("compra_id").references(() => comprasInsumo.id, {
+    onDelete: "set null",
+  }),
+  creadoPor: uuid("creado_por").references(() => perfiles.id, {
+    onDelete: "set null",
+  }),
+  ...timestamps,
+});
+
 /* ── Contabilidad (Fase 2, dormida en Fase 4) ──────────────── */
 
 export const planCuentas = pgTable("plan_cuentas", {
@@ -539,6 +581,17 @@ export const preciosVentaRelations = relations(preciosVenta, ({ one }) => ({
   producto: one(productos, {
     fields: [preciosVenta.productoId],
     references: [productos.id],
+  }),
+}));
+
+export const ccMovimientosRelations = relations(ccMovimientos, ({ one }) => ({
+  movimiento: one(movimientos, {
+    fields: [ccMovimientos.movimientoId],
+    references: [movimientos.id],
+  }),
+  compra: one(comprasInsumo, {
+    fields: [ccMovimientos.compraId],
+    references: [comprasInsumo.id],
   }),
 }));
 

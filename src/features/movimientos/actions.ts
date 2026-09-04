@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 
 import { db } from "@/db";
 import {
+  ccMovimientos,
   clientes,
   consignaciones,
   movimientoItemLotes,
@@ -16,7 +17,12 @@ import {
 import { registrarAuditoria } from "@/lib/audit";
 import { requireRole } from "@/lib/auth";
 import { ingresoNeto, round2, tomarFifo } from "@/lib/stock";
-import { movimientoInput, reglaDe, type MovimientoInput } from "./schema";
+import {
+  movimientoInput,
+  reglaDe,
+  TIPO_LABEL,
+  type MovimientoInput,
+} from "./schema";
 
 export type ActionResult =
   | { ok: true; id: string }
@@ -105,6 +111,8 @@ export async function crearMovimiento(
         creadoPor: user.id,
       })
       .returning({ id: movimientos.id });
+
+    let totalCredito = 0;
 
     for (const it of data.items) {
       const prod = await tx.query.productos.findFirst({
@@ -281,6 +289,9 @@ export async function crearMovimiento(
       const precio = it.precioConIva ?? 0;
       const ing =
         regla.impacto === "ingreso" ? round2(ingresoNeto(abs, precio)) : 0;
+      if (regla.pidePrecio && data.medioPago === "credito") {
+        totalCredito += abs * precio;
+      }
       let costo = 0;
       if (regla.generaCosto) {
         if (
@@ -315,7 +326,23 @@ export async function crearMovimiento(
       }
     }
 
-    return { ok: true as const, id: mov.id };
+    // Venta a crédito: queda en la cuenta corriente del cliente.
+    if (totalCredito > 0 && clienteId) {
+      await tx.insert(ccMovimientos).values({
+        entidadTipo: "cliente",
+        entidadId: clienteId,
+        fecha: data.fecha,
+        concepto: `${TIPO_LABEL[data.tipo]} a crédito`,
+        debe: String(round2(totalCredito)),
+        haber: "0",
+        origen: "venta_credito",
+        medioPago: "credito",
+        movimientoId: mov.id,
+        creadoPor: user.id,
+      });
+    }
+
+    return { ok: true as const, id: mov.id, clienteId };
   });
 
   if (!result.ok) return result;
@@ -329,6 +356,7 @@ export async function crearMovimiento(
   });
 
   revalidar();
+  if (result.clienteId) revalidatePath(`/clientes/${result.clienteId}`);
   return { ok: true, id: result.id };
 }
 

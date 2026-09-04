@@ -24,6 +24,11 @@ import {
 } from "@/components/ui/table";
 import { registrarCompra } from "@/features/insumos/actions";
 import type { InsumoCompraRow } from "@/features/insumos/queries";
+import {
+  MEDIOS_PAGO_COMPRA,
+  MEDIO_PAGO_COMPRA_LABEL,
+  type MedioPagoCompra,
+} from "@/features/insumos/schema";
 import { fmtCantidad, fmtMoney } from "@/lib/format";
 
 type Terminado = { id: string; nombre: string };
@@ -51,6 +56,7 @@ export function CompraForm({
   const router = useRouter();
   const [fecha, setFecha] = useState(hoy());
   const [proveedorId, setProveedorId] = useState("");
+  const [medioPago, setMedioPago] = useState<MedioPagoCompra>("efectivo");
   const [loteSel, setLoteSel] = useState(STOCK_GRAL);
   const [nuevoLote, setNuevoLote] = useState("");
   const [prodSug, setProdSug] = useState("");
@@ -121,6 +127,7 @@ export function CompraForm({
       proveedorId: proveedorId || "",
       loteId: loteSel === STOCK_GRAL || loteSel === NUEVO_LOTE ? "" : loteSel,
       nuevoLoteNombre: loteSel === NUEVO_LOTE ? nuevoLote : "",
+      medioPago,
       lineas: lineasConCompra.map(([insumoId, r]) => ({
         insumoId,
         cantidad: Number(r.cantidad),
@@ -141,7 +148,7 @@ export function CompraForm({
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-5">
         <div className="grid gap-1.5">
           <Label className="text-xs">Fecha *</Label>
           <Input
@@ -175,6 +182,35 @@ export function CompraForm({
               ))}
             </SelectContent>
           </Select>
+        </div>
+        <div className="grid gap-1.5">
+          <Label className="text-xs">Medio de pago</Label>
+          <Select
+            items={MEDIOS_PAGO_COMPRA.map((m) => ({
+              label: MEDIO_PAGO_COMPRA_LABEL[m],
+              value: m,
+            }))}
+            value={medioPago}
+            onValueChange={(v) =>
+              setMedioPago((v as MedioPagoCompra) ?? "efectivo")
+            }
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {MEDIOS_PAGO_COMPRA.map((m) => (
+                <SelectItem key={m} value={m}>
+                  {MEDIO_PAGO_COMPRA_LABEL[m]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {medioPago === "credito" && !proveedorId ? (
+            <p className="text-xs text-destructive">
+              Elegí el proveedor para la compra a crédito.
+            </p>
+          ) : null}
         </div>
         <div className="grid gap-1.5">
           <Label className="text-xs">Para el lote</Label>

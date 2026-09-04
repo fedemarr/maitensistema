@@ -1,9 +1,10 @@
 import "server-only";
 
-import { and, asc, count, eq, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, sql } from "drizzle-orm";
 
 import { db } from "@/db";
-import { comprasInsumo, proveedores } from "@/db/schema";
+import { comprasInsumo, lotes, proveedores } from "@/db/schema";
+import { historialCc, saldoEntidad, saldosPorTipo } from "@/features/cc/queries";
 
 export type ProveedorListItem = {
   id: string;
@@ -12,6 +13,7 @@ export type ProveedorListItem = {
   email: string | null;
   telefono: string | null;
   activo: boolean;
+  saldoCc: number;
 };
 
 /** Lista de proveedores. */
@@ -37,7 +39,9 @@ export async function listProveedores(
     },
   });
 
-  return rows;
+  const saldoMap = await saldosPorTipo("proveedor");
+
+  return rows.map((r) => ({ ...r, saldoCc: saldoMap.get(r.id) ?? 0 }));
 }
 
 export type Proveedor = NonNullable<Awaited<ReturnType<typeof getProveedor>>>;
@@ -75,4 +79,25 @@ export async function contarMovimientosDeProveedor(
     .from(comprasInsumo)
     .where(eq(comprasInsumo.proveedorId, proveedorId));
   return row?.n ?? 0;
+}
+
+/** Ficha: saldo de cuenta corriente, su historial y las compras al proveedor. */
+export async function fichaProveedor(id: string) {
+  const [saldoCc, cc, compras] = await Promise.all([
+    saldoEntidad("proveedor", id),
+    historialCc("proveedor", id),
+    db
+      .select({
+        id: comprasInsumo.id,
+        fecha: comprasInsumo.fecha,
+        total: comprasInsumo.total,
+        medioPago: comprasInsumo.medioPago,
+        lote: lotes.nombre,
+      })
+      .from(comprasInsumo)
+      .leftJoin(lotes, eq(comprasInsumo.loteId, lotes.id))
+      .where(eq(comprasInsumo.proveedorId, id))
+      .orderBy(desc(comprasInsumo.fecha)),
+  ]);
+  return { saldoCc, cc, compras };
 }
