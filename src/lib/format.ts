@@ -33,7 +33,16 @@ export function fmtCantidad(
 
 export function fmtDate(value: string | Date | null | undefined): string {
   if (!value) return "—";
-  const d = typeof value === "string" ? new Date(value) : value;
+  let d: Date;
+  if (typeof value === "string") {
+    // "YYYY-MM-DD" (lo que devuelve Drizzle para `date`): parsear como fecha
+    // local, no UTC. `new Date("YYYY-MM-DD")` cae a medianoche UTC, que en
+    // husos negativos (Argentina) muestra el día anterior.
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
+    d = m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : new Date(value);
+  } else {
+    d = value;
+  }
   return d.toLocaleDateString("es-AR", {
     day: "2-digit",
     month: "2-digit",
