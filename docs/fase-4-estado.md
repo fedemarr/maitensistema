@@ -66,6 +66,25 @@ de comprobación, estado de resultados. Ítem "Finanzas" en el sidebar.
 Los datos contables de Fase 2/3 se perdieron en el reset; el plan de
 cuentas se recreó y los asientos arrancan desde ahora.
 
+## Fase 8 — Spec v1.2: IVA y tarifario de la fábrica (05/09/2026)
+
+Implementa `docs/ESPECIFICACION_SISTEMA_MAITEN_v1.2.md` (mockup
+`maiten-proceso-completo_20.html`).
+
+- **IVA (§1.5):** Maitén es responsable inscripto → todos los costos
+  van sin IVA y los precios de venta se cargan netos. `precio_con_iva`
+  → `precio_neto` en `precios_venta` y `movimiento_items`. Movimientos
+  muestra "Precio neto / u" + "con IVA / u" calculado; ingreso = cant ×
+  neto (sin ÷ 1,21) + total con IVA que paga el cliente. Precios: neto
+  editable + "con IVA" calculado; mayorista vacío = usa retail. El
+  tratamiento fiscal del IVA (crédito/débito → IVA del período) queda
+  para el módulo contable, no se diseñó.
+- **Fábrica (§3.3):** `precios_fabricacion` pasa a precio por unidad y
+  por producto con vigencias; nueva `minimo_compra_fabrica`. Producción
+  con pestañas Órdenes / Fábrica. En la orden el precio es de solo
+  lectura (vigente a la fecha, congelado); control del mínimo sobre el
+  total del lote. Seed OC N°3 en la migración `0004`.
+
 ## Fuera de esta fase (spec §7)
 
 Integración Tienda Nube (recibir pedidos + sync de stock), facturación
