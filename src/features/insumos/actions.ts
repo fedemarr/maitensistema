@@ -12,6 +12,10 @@ import {
   lotes,
   productos,
 } from "@/db/schema";
+import {
+  generarAsientoBaja,
+  generarAsientoCompra,
+} from "@/features/finanzas/lib/posting";
 import { registrarAuditoria } from "@/lib/audit";
 import { requireRole } from "@/lib/auth";
 import { pppCompra, round2, round4 } from "@/lib/stock";
@@ -229,6 +233,8 @@ export async function registrarCompra(
       });
     }
 
+    await generarAsientoCompra(tx, compra.id, user.id);
+
     return compra.id;
   });
 
@@ -245,6 +251,7 @@ export async function registrarCompra(
   });
 
   revalidatePath("/insumos");
+  revalidatePath("/finanzas");
   return { ok: true, id: compraId };
 }
 
@@ -298,6 +305,8 @@ export async function registrarBaja(input: BajaInput): Promise<ActionResult> {
       })
       .where(eq(productos.id, data.insumoId));
 
+    await generarAsientoBaja(tx, row.id, user.id);
+
     return row.id;
   });
 
@@ -312,5 +321,6 @@ export async function registrarBaja(input: BajaInput): Promise<ActionResult> {
   });
 
   revalidatePath("/insumos");
+  revalidatePath("/finanzas");
   return { ok: true, id: bajaId };
 }

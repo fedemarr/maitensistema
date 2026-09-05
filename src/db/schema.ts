@@ -507,7 +507,7 @@ export const ccMovimientos = pgTable("cc_movimientos", {
   ...timestamps,
 });
 
-/* ── Contabilidad (Fase 2, dormida en Fase 4) ──────────────── */
+/* ── Finanzas / contabilidad de partida doble ──────────────── */
 
 export const planCuentas = pgTable("plan_cuentas", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -519,12 +519,32 @@ export const planCuentas = pgTable("plan_cuentas", {
   ...timestamps,
 });
 
+/**
+ * Asiento contable. `origen`: "movimiento" | "produccion" | "compra" |
+ * "cobro" | "pago" | "baja" | "manual". Los automáticos guardan el FK a su
+ * hecho generador para poder revertirse (borrado en cascada).
+ */
 export const asientos = pgTable("asientos", {
   id: uuid("id").primaryKey().defaultRandom(),
   fecha: date("fecha").notNull().defaultNow(),
   descripcion: text("descripcion").notNull(),
   origen: text("origen").notNull().default("manual"),
   estado: text("estado").notNull().default("confirmado"),
+  movimientoId: uuid("movimiento_id").references(() => movimientos.id, {
+    onDelete: "cascade",
+  }),
+  compraId: uuid("compra_id").references(() => comprasInsumo.id, {
+    onDelete: "cascade",
+  }),
+  ordenId: uuid("orden_id").references(() => ordenesProduccion.id, {
+    onDelete: "cascade",
+  }),
+  ccMovimientoId: uuid("cc_movimiento_id").references(() => ccMovimientos.id, {
+    onDelete: "cascade",
+  }),
+  bajaId: uuid("baja_id").references(() => bajasInsumo.id, {
+    onDelete: "cascade",
+  }),
   creadoPor: uuid("creado_por").references(() => perfiles.id, {
     onDelete: "set null",
   }),
@@ -779,6 +799,22 @@ export const asientosRelations = relations(asientos, ({ one, many }) => ({
   creador: one(perfiles, {
     fields: [asientos.creadoPor],
     references: [perfiles.id],
+  }),
+  movimiento: one(movimientos, {
+    fields: [asientos.movimientoId],
+    references: [movimientos.id],
+  }),
+  compra: one(comprasInsumo, {
+    fields: [asientos.compraId],
+    references: [comprasInsumo.id],
+  }),
+  orden: one(ordenesProduccion, {
+    fields: [asientos.ordenId],
+    references: [ordenesProduccion.id],
+  }),
+  ccMovimiento: one(ccMovimientos, {
+    fields: [asientos.ccMovimientoId],
+    references: [ccMovimientos.id],
   }),
   lineas: many(asientoLineas),
 }));

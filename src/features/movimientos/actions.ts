@@ -14,6 +14,7 @@ import {
   productos,
   stockLotes,
 } from "@/db/schema";
+import { generarAsientoMovimiento } from "@/features/finanzas/lib/posting";
 import { registrarAuditoria } from "@/lib/audit";
 import { requireRole } from "@/lib/auth";
 import { ingresoNeto, round2, tomarFifo } from "@/lib/stock";
@@ -34,6 +35,7 @@ const revalidar = () => {
   revalidatePath("/consignaciones");
   revalidatePath("/clientes");
   revalidatePath("/reportes");
+  revalidatePath("/finanzas");
   revalidatePath("/");
 };
 
@@ -341,6 +343,9 @@ export async function crearMovimiento(
         creadoPor: user.id,
       });
     }
+
+    // Asiento contable de partida doble.
+    await generarAsientoMovimiento(tx, mov.id, user.id);
 
     return { ok: true as const, id: mov.id, clienteId };
   });

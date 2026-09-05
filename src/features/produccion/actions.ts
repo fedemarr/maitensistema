@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 
 import { db } from "@/db";
 import {
+  asientos,
   bajasInsumo,
   compraInsumoLineas,
   comprasInsumo,
@@ -19,6 +20,10 @@ import {
   recetas,
   stockLotes,
 } from "@/db/schema";
+import {
+  generarAsientoBaja,
+  generarAsientoProduccion,
+} from "@/features/finanzas/lib/posting";
 import { registrarAuditoria } from "@/lib/audit";
 import { requireRole } from "@/lib/auth";
 import { pppMovil, round2, round4 } from "@/lib/stock";
@@ -46,6 +51,7 @@ const revalidar = () => {
   revalidatePath("/stock");
   revalidatePath("/movimientos");
   revalidatePath("/productos");
+  revalidatePath("/finanzas");
   revalidatePath("/");
 };
 
@@ -265,6 +271,7 @@ export async function cerrarOrden(
     );
 
     let bajasAuto = 0;
+    const bajasAutoIds: string[] = [];
     for (const info of infoInsumos) {
       if (info.reutilizable) continue;
       const comp = compradoMap.get(info.id) ?? 0;
@@ -287,16 +294,20 @@ export async function cerrarOrden(
       if (sobrante <= 0) continue;
 
       const monto = round2(sobrante * Number(info.ppp));
-      await tx.insert(bajasInsumo).values({
-        fecha: hoy,
-        insumoId: info.id,
-        cantidad: String(sobrante),
-        motivo: "no_reutilizable",
-        monto: String(monto),
-        loteId: orden.loteId,
-        ordenId: orden.id,
-        creadoPor: user.id,
-      });
+      const [b] = await tx
+        .insert(bajasInsumo)
+        .values({
+          fecha: hoy,
+          insumoId: info.id,
+          cantidad: String(sobrante),
+          motivo: "no_reutilizable",
+          monto: String(monto),
+          loteId: orden.loteId,
+          ordenId: orden.id,
+          creadoPor: user.id,
+        })
+        .returning({ id: bajasInsumo.id });
+      bajasAutoIds.push(b.id);
       await tx
         .update(productos)
         .set({
@@ -409,6 +420,12 @@ export async function cerrarOrden(
         movimientoEntradaId: mov.id,
       })
       .where(eq(ordenesProduccion.id, orden.id));
+
+    // 6. Asientos contables: fabricación + bajas automáticas de sobrantes.
+    await generarAsientoProduccion(tx, orden.id, user.id);
+    for (const bajaId of bajasAutoIds) {
+      await generarAsientoBaja(tx, bajaId, user.id);
+    }
 
     return {
       ok: true as const,
@@ -523,6 +540,9 @@ export async function anularOrden(id: string): Promise<ActionResult> {
         .where(eq(productos.id, b.insumoId));
     }
     await tx.delete(bajasInsumo).where(eq(bajasInsumo.ordenId, orden.id));
+
+    // Borrar el asiento de fabricación (los de las bajas se van en cascada).
+    await tx.delete(asientos).where(eq(asientos.ordenId, orden.id));
 
     // Borrar el movimiento de entrada (cascada a items y item_lotes).
     await tx

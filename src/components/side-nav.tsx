@@ -4,6 +4,7 @@ import {
   ArrowLeftRightIcon,
   BeakerIcon,
   BoxesIcon,
+  BookOpenIcon,
   ChartColumnIcon,
   ClipboardListIcon,
   FactoryIcon,
@@ -51,7 +52,10 @@ const NAV: { seccion: string; items: Item[] }[] = [
   },
   {
     seccion: "Análisis",
-    items: [{ href: "/reportes", label: "Reportes", icon: ChartColumnIcon }],
+    items: [
+      { href: "/reportes", label: "Reportes", icon: ChartColumnIcon },
+      { href: "/finanzas", label: "Finanzas", icon: BookOpenIcon },
+    ],
   },
   {
     seccion: "Configuración",
