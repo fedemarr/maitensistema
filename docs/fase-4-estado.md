@@ -53,13 +53,25 @@ y botón Registrar cobro / Registrar pago; listados con columna de saldo.
 Probado E2E con Playwright, saldos correctos en cada paso. Reemplaza al
 `cc_movimientos` de Fase 2 (que quedó dormido, sin tocar).
 
+## Fase 7 — Finanzas: contabilidad de partida doble (05/09/2026)
+
+Recupera el módulo de contabilidad de Fase 2/3 (borrado en el reset de
+Fase 4) y lo reengancha al modelo nuevo. `src/features/finanzas/`:
+plan de cuentas (12 cuentas sembradas por migración `0003`), motor de
+asientos (`lib/posting.ts`) que genera el asiento de partida doble de
+cada venta, salida no-venta, consignación, ajuste, compra, cierre de
+producción, baja, cobro y pago — dentro de la misma transacción del
+hecho. Pantallas: `/finanzas` (hub), libro diario, balance general +
+de comprobación, estado de resultados. Ítem "Finanzas" en el sidebar.
+Los datos contables de Fase 2/3 se perdieron en el reset; el plan de
+cuentas se recreó y los asientos arrancan desde ahora.
+
 ## Fuera de esta fase (spec §7)
 
-Integración Tienda Nube, facturación (AFIP), canal de venta, edición de
-fichas, permisos granulares. Sin credenciales de Tiendanube ni de AFIP
-todavía — ver `docs/tiendanube-diseno.md` y `docs/afip-diseno.md`.
-Contabilidad de partida doble (Fase 2) queda dormida: su tabla sigue ahí
-pero nada la alimenta desde Movimientos.
+Integración Tienda Nube (recibir pedidos + sync de stock), facturación
+(AFIP), canal de venta, edición de fichas, permisos granulares. Sin
+credenciales de Tiendanube ni de AFIP todavía — ver
+`docs/tiendanube-diseno.md` y `docs/afip-diseno.md`.
 
 ## Cierre pendiente (igual que en fases anteriores)
 
