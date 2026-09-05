@@ -6,7 +6,7 @@ import { db } from "@/db";
 import { preciosVenta, productos } from "@/db/schema";
 import type { TipoLista } from "./schema";
 
-export type PrecioVigente = { precioConIva: string; vigenteDesde: string } | null;
+export type PrecioVigente = { precioNeto: string; vigenteDesde: string } | null;
 
 export type ProductoConPrecios = {
   productoId: string;
@@ -37,7 +37,7 @@ export async function preciosVigentes(): Promise<ProductoConPrecios[]> {
   for (const v of vigentes) {
     const entry = porProducto.get(v.productoId) ?? {};
     entry[v.tipoLista as TipoLista] = {
-      precioConIva: v.precioConIva,
+      precioNeto: v.precioNeto,
       vigenteDesde: v.vigenteDesde,
     };
     porProducto.set(v.productoId, entry);
@@ -55,7 +55,7 @@ export async function preciosVigentes(): Promise<ProductoConPrecios[]> {
 export type PrecioHistorial = {
   id: string;
   tipoLista: TipoLista;
-  precioConIva: string;
+  precioNeto: string;
   vigenteDesde: string;
   vigenteHasta: string | null;
 };
@@ -71,7 +71,7 @@ export async function historialPrecios(
   return rows.map((r) => ({
     id: r.id,
     tipoLista: r.tipoLista as TipoLista,
-    precioConIva: r.precioConIva,
+    precioNeto: r.precioNeto,
     vigenteDesde: r.vigenteDesde,
     vigenteHasta: r.vigenteHasta,
   }));

@@ -1,8 +1,9 @@
 import { listLotes } from "@/features/insumos/queries";
 import {
-  historialFabricacion,
+  fabricacionPorLoteMap,
   listOrdenes,
-  precioFabricacionVigente,
+  minimosVigencias,
+  preciosFabPorProducto,
   recetaConStock,
   terminadosConReceta,
   type LineaPlan,
@@ -11,21 +12,22 @@ import { puedeEscribir, requireUser } from "@/lib/auth";
 
 import { OrdenesTabla } from "./_components/ordenes-tabla";
 import { PlanificarForm } from "./_components/planificar-form";
+import { ProduccionTabs } from "./_components/produccion-tabs";
 
 export const metadata = { title: "Producción — Maitén" };
 
 export default async function ProduccionPage() {
   const user = await requireUser();
   const editable = puedeEscribir(user.rol);
-  const hoy = new Date().toISOString().slice(0, 10);
 
-  const [terminados, lotes, ordenes, fabVigente, fabHistorial] =
+  const [terminados, lotes, ordenes, preciosFab, minimos, fabPorLote] =
     await Promise.all([
       terminadosConReceta(),
       listLotes(),
       listOrdenes(),
-      precioFabricacionVigente(hoy),
-      historialFabricacion(),
+      preciosFabPorProducto(),
+      minimosVigencias(),
+      fabricacionPorLoteMap(),
     ]);
 
   const recetas: Record<string, LineaPlan[]> = {};
@@ -43,23 +45,16 @@ export default async function ProduccionPage() {
         </p>
       </div>
 
+      <ProduccionTabs />
+
       {editable ? (
         <PlanificarForm
           terminados={terminados}
           lotes={lotes}
           recetas={recetas}
-          fabVigente={
-            fabVigente
-              ? {
-                  montoPorLote: fabVigente.montoPorLote,
-                  vigenteDesde: fabVigente.vigenteDesde,
-                }
-              : null
-          }
-          fabHistorial={fabHistorial.map((h) => ({
-            montoPorLote: h.montoPorLote,
-            vigenteDesde: h.vigenteDesde,
-          }))}
+          preciosFab={preciosFab}
+          minimos={minimos}
+          fabPorLote={fabPorLote}
         />
       ) : null}
 

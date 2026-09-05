@@ -50,7 +50,7 @@ export async function guardarPrecio(input: PrecioInput): Promise<ActionResult> {
     ),
   });
 
-  if (vigente && Number(vigente.precioConIva) === round2(data.precioConIva)) {
+  if (vigente && Number(vigente.precioNeto) === round2(data.precioNeto)) {
     return { ok: true, id: vigente.id };
   }
 
@@ -66,7 +66,7 @@ export async function guardarPrecio(input: PrecioInput): Promise<ActionResult> {
       .values({
         productoId: data.productoId,
         tipoLista: data.tipoLista,
-        precioConIva: String(round2(data.precioConIva)),
+        precioNeto: String(round2(data.precioNeto)),
         vigenteDesde: data.vigenteDesde,
       })
       .returning({ id: preciosVenta.id });
@@ -81,7 +81,7 @@ export async function guardarPrecio(input: PrecioInput): Promise<ActionResult> {
     datos: {
       productoId: data.productoId,
       tipoLista: data.tipoLista,
-      precioConIva: data.precioConIva,
+      precioNeto: data.precioNeto,
     },
   });
 

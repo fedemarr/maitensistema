@@ -15,9 +15,9 @@ export default async function PreciosPage() {
       <div>
         <h1 className="text-2xl font-semibold">Lista de precios</h1>
         <p className="text-sm text-muted-foreground">
-          Precio de venta sugerido (con IVA) por producto, retail y mayorista.
-          Se precarga en Movimientos al elegir el producto y el cliente, pero
-          siempre se puede editar en el momento de la venta.
+          Se carga el precio <b>neto</b> (sin IVA); el sistema muestra al lado
+          el precio con IVA como referencia. Mayorista vacío = usa retail. Se
+          precarga en Movimientos según el tipo de cliente, editable en la venta.
         </p>
       </div>
 

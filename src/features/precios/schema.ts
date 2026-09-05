@@ -8,6 +8,9 @@ export const TIPO_LISTA_LABEL: Record<TipoLista, string> = {
   mayorista: "Mayorista",
 };
 
+/** IVA general (responsable inscripto). Los precios se cargan netos; el bruto es referencia. */
+export const IVA = 1.21;
+
 /**
  * Tipos de cliente que compran a la lista mayorista (D-04: "mayorista al
  * 40 %"). El resto usa retail. Es solo el precio sugerido: siempre editable
@@ -18,7 +21,8 @@ export const TIPOS_CLIENTE_MAYORISTA = ["distribuidor"] as const;
 export const precioInput = z.object({
   productoId: z.uuid(),
   tipoLista: z.enum(TIPOS_LISTA),
-  precioConIva: z.coerce.number().min(0, "No puede ser negativo."),
+  /** Precio SIN IVA. */
+  precioNeto: z.coerce.number().min(0, "No puede ser negativo."),
   vigenteDesde: z.string().min(1, "La fecha es obligatoria."),
 });
 export type PrecioInput = z.infer<typeof precioInput>;

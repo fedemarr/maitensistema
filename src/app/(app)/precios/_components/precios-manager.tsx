@@ -16,12 +16,14 @@ import {
 } from "@/components/ui/table";
 import { guardarPrecio } from "@/features/precios/actions";
 import type { ProductoConPrecios } from "@/features/precios/queries";
-import { TIPOS_LISTA, TIPO_LISTA_LABEL, type TipoLista } from "@/features/precios/schema";
+import { IVA, type TipoLista } from "@/features/precios/schema";
 import { fmtDate, fmtMoney } from "@/lib/format";
 
 function hoy() {
   return new Date().toISOString().slice(0, 10);
 }
+
+const conIva = (neto: number) => fmtMoney(Math.round(neto * IVA));
 
 function CeldaPrecio({
   productoId,
@@ -31,22 +33,25 @@ function CeldaPrecio({
 }: {
   productoId: string;
   tipoLista: TipoLista;
-  vigente: { precioConIva: string; vigenteDesde: string } | null;
+  vigente: { precioNeto: string; vigenteDesde: string } | null;
   editable: boolean;
 }) {
   const router = useRouter();
   const [valor, setValor] = useState(
-    vigente ? String(Number(vigente.precioConIva)) : "",
+    vigente ? String(Number(vigente.precioNeto)) : "",
   );
   const [pending, startTransition] = useTransition();
-  const cambio = vigente ? Number(vigente.precioConIva) !== Number(valor || 0) : Number(valor || 0) > 0;
+  const neto = Number(valor || 0);
+  const cambio = vigente
+    ? Number(vigente.precioNeto) !== neto
+    : neto > 0;
 
   function guardar() {
     startTransition(async () => {
       const res = await guardarPrecio({
         productoId,
         tipoLista,
-        precioConIva: Number(valor || 0),
+        precioNeto: neto,
         vigenteDesde: hoy(),
       });
       if (!res.ok) {
@@ -62,11 +67,12 @@ function CeldaPrecio({
     return (
       <div>
         <p className="font-medium tabular-nums">
-          {vigente ? fmtMoney(vigente.precioConIva) : "—"}
+          {vigente ? fmtMoney(vigente.precioNeto) : "—"}
         </p>
         {vigente ? (
           <p className="text-[11px] text-muted-foreground">
-            desde {fmtDate(vigente.vigenteDesde)}
+            con IVA {conIva(Number(vigente.precioNeto))} · desde{" "}
+            {fmtDate(vigente.vigenteDesde)}
           </p>
         ) : null}
       </div>
@@ -74,24 +80,30 @@ function CeldaPrecio({
   }
 
   return (
-    <div className="flex items-center gap-1.5">
-      <Input
-        type="number"
-        step="any"
-        className="h-8 w-28"
-        value={valor}
-        onChange={(e) => setValor(e.target.value)}
-      />
-      <Button
-        type="button"
-        size="sm"
-        variant="outline"
-        className="h-8 px-2"
-        disabled={pending || !cambio || !valor}
-        onClick={guardar}
-      >
-        Guardar
-      </Button>
+    <div className="space-y-1">
+      <div className="flex items-center gap-1.5">
+        <Input
+          type="number"
+          step="any"
+          className="h-8 w-28"
+          placeholder="neto"
+          value={valor}
+          onChange={(e) => setValor(e.target.value)}
+        />
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="h-8 px-2"
+          disabled={pending || !cambio}
+          onClick={guardar}
+        >
+          Guardar
+        </Button>
+      </div>
+      <p className="text-[11px] tabular-nums text-muted-foreground">
+        {neto > 0 ? `con IVA ${conIva(neto)}` : "—"}
+      </p>
     </div>
   );
 }
@@ -110,9 +122,8 @@ export function PreciosManager({
           <TableRow>
             <TableHead>Producto</TableHead>
             <TableHead>SKU</TableHead>
-            {TIPOS_LISTA.map((t) => (
-              <TableHead key={t}>{TIPO_LISTA_LABEL[t]}</TableHead>
-            ))}
+            <TableHead>Retail (neto)</TableHead>
+            <TableHead>Mayorista (neto)</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -141,12 +152,28 @@ export function PreciosManager({
                   />
                 </TableCell>
                 <TableCell>
-                  <CeldaPrecio
-                    productoId={p.productoId}
-                    tipoLista="mayorista"
-                    vigente={p.mayorista}
-                    editable={editable}
-                  />
+                  {p.mayorista ? (
+                    <CeldaPrecio
+                      productoId={p.productoId}
+                      tipoLista="mayorista"
+                      vigente={p.mayorista}
+                      editable={editable}
+                    />
+                  ) : (
+                    <div className="space-y-1">
+                      {editable ? (
+                        <CeldaPrecio
+                          productoId={p.productoId}
+                          tipoLista="mayorista"
+                          vigente={null}
+                          editable={editable}
+                        />
+                      ) : null}
+                      <p className="text-[11px] text-muted-foreground">
+                        vacío = usa retail
+                      </p>
+                    </div>
+                  )}
                 </TableCell>
               </TableRow>
             ))

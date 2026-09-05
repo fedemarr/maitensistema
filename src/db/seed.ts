@@ -64,7 +64,7 @@ const RECETA_CR: [string, number][] = [
 ];
 
 async function main() {
-  const { rubros, productos, recetas, recetaLineas, lotes, stockLotes, preciosFabricacion, clientes } = schema;
+  const { rubros, productos, recetas, recetaLineas, lotes, stockLotes, clientes } = schema;
 
   await db.insert(rubros).values([{ nombre: "Capilar" }, { nombre: "Corporal" }]).onConflictDoNothing();
   const capilar = await db.query.rubros.findFirst({ where: eq(rubros.nombre, "Capilar") });
@@ -147,14 +147,8 @@ async function main() {
       .onConflictDoNothing();
   }
 
-  // Precio de fabricación (historial por vigencia).
-  const yaFab = await db.query.preciosFabricacion.findFirst();
-  if (!yaFab) {
-    await db.insert(preciosFabricacion).values([
-      { montoPorLote: "441600", vigenteDesde: "2026-01-01", vigenteHasta: "2026-08-07" },
-      { montoPorLote: "436800", vigenteDesde: "2026-08-08" },
-    ]);
-  }
+  // El tarifario de la fábrica (precios por producto + mínimo) se siembra en
+  // la migración drizzle/0004 (spec v1.2 §3.3).
 
   // Clientes (solo si no hay ninguno).
   const hayClientes = await db.query.clientes.findFirst();

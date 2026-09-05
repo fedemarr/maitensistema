@@ -23,7 +23,6 @@ export const planificarInput = z.object({
     .transform((v) => (v ? v : null)),
   cantidad: z.coerce.number().int("Entero.").positive("Mayor a 0."),
   fechaPrevista: z.string().min(1, "La fecha es obligatoria."),
-  fabricacionCotizada: z.coerce.number().min(0, "No puede ser negativo."),
 });
 export type PlanificarInput = z.infer<typeof planificarInput>;
 
@@ -41,3 +40,18 @@ export const cerrarOrdenInput = z.object({
     .min(1),
 });
 export type CerrarOrdenInput = z.infer<typeof cerrarOrdenInput>;
+
+/** Nueva vigencia del precio de fabricación de un producto (Fábrica · tarifario). */
+export const vigenciaPrecioFabInput = z.object({
+  productoId: z.uuid("Elegí el producto."),
+  precioUnitario: z.coerce.number().positive("Mayor a 0."),
+  vigenteDesde: z.string().min(1, "La fecha es obligatoria."),
+});
+export type VigenciaPrecioFabInput = z.infer<typeof vigenciaPrecioFabInput>;
+
+/** Nueva vigencia del mínimo de compra que exige la fábrica. */
+export const vigenciaMinimoInput = z.object({
+  monto: z.coerce.number().positive("Mayor a 0."),
+  vigenteDesde: z.string().min(1, "La fecha es obligatoria."),
+});
+export type VigenciaMinimoInput = z.infer<typeof vigenciaMinimoInput>;

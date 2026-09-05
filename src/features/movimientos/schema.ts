@@ -115,8 +115,12 @@ const nuevoClienteInput = z.object({
 export const itemMovimientoInput = z.object({
   productoId: z.uuid("Elegí un producto."),
   cantidad: z.coerce.number().int("Entero."),
-  precioConIva: z.coerce.number().min(0).optional(),
+  /** Precio de venta por unidad, SIN IVA. */
+  precioNeto: z.coerce.number().min(0).optional(),
 });
+
+/** IVA general (responsable inscripto). El sistema muestra el bruto como referencia. */
+export const IVA = 1.21;
 
 export const movimientoInput = z.object({
   tipo: z.enum(TIPOS_MANUAL),

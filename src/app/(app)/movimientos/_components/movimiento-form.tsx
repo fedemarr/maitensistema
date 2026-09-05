@@ -29,7 +29,7 @@ import {
 } from "@/features/movimientos/schema";
 import { TIPO_LABEL as CLIENTE_TIPO_LABEL, tipoClienteEnum } from "@/features/clientes/schema";
 import type { ProductoConPrecios } from "@/features/precios/queries";
-import { TIPOS_CLIENTE_MAYORISTA } from "@/features/precios/schema";
+import { IVA, TIPOS_CLIENTE_MAYORISTA } from "@/features/precios/schema";
 import { fmtMoney } from "@/lib/format";
 
 type Prod = { id: string; nombre: string; ppp: string };
@@ -106,8 +106,8 @@ export function MovimientoForm({
         precios.map((p) => [
           p.productoId,
           {
-            retail: p.retail ? Number(p.retail.precioConIva) : null,
-            mayorista: p.mayorista ? Number(p.mayorista.precioConIva) : null,
+            retail: p.retail ? Number(p.retail.precioNeto) : null,
+            mayorista: p.mayorista ? Number(p.mayorista.precioNeto) : null,
           },
         ]),
       ),
@@ -144,12 +144,12 @@ export function MovimientoForm({
     for (const it of items) {
       const q = Math.abs(Number(it.cantidad) || 0);
       const ppp = pppById.get(it.productoId) ?? 0;
-      if (regla.impacto === "ingreso")
-        ing += (q * (Number(it.precio) || 0)) / 1.21;
+      // El precio ya se carga neto (spec v1.2 §1.5); sin ÷ 1,21.
+      if (regla.impacto === "ingreso") ing += q * (Number(it.precio) || 0);
       if (regla.generaCosto && regla.deposito !== "no") costo += q * ppp;
       if (regla.consig === "vender") costo += q * ppp;
     }
-    return { ing, costo };
+    return { ing, costo, conIva: ing * IVA };
   }, [items, pppById, regla]);
 
   function setItem(key: string, patch: Partial<(typeof items)[number]>) {
@@ -178,7 +178,7 @@ export function MovimientoForm({
       items: items.map((i) => ({
         productoId: i.productoId,
         cantidad: Number(i.cantidad || 0),
-        precioConIva: regla.pidePrecio ? Number(i.precio || 0) : undefined,
+        precioNeto: regla.pidePrecio ? Number(i.precio || 0) : undefined,
       })),
     });
     setSaving(false);
@@ -437,18 +437,25 @@ export function MovimientoForm({
               onChange={(e) => setItem(it.key, { cantidad: e.target.value })}
             />
             {regla.pidePrecio ? (
-              <Input
-                type="number"
-                step="any"
-                placeholder="Precio + IVA / u"
-                value={it.precio}
-                onChange={(e) =>
-                  setItem(it.key, {
-                    precio: e.target.value,
-                    precioAuto: false,
-                  })
-                }
-              />
+              <div className="space-y-0.5">
+                <Input
+                  type="number"
+                  step="any"
+                  placeholder="Precio neto / u"
+                  value={it.precio}
+                  onChange={(e) =>
+                    setItem(it.key, {
+                      precio: e.target.value,
+                      precioAuto: false,
+                    })
+                  }
+                />
+                <p className="text-[11px] tabular-nums text-muted-foreground">
+                  {Number(it.precio) > 0
+                    ? `con IVA ${fmtMoney(Number(it.precio) * IVA)} / u`
+                    : "neto (sin IVA)"}
+                </p>
+              </div>
             ) : (
               <span />
             )}
@@ -478,6 +485,12 @@ export function MovimientoForm({
         <span>
           Ingreso neto: <b>{fmtMoney(resumen.ing)}</b>
         </span>
+        {regla.impacto === "ingreso" ? (
+          <span className="text-muted-foreground">
+            con IVA (lo que paga el cliente):{" "}
+            <b className="text-foreground">{fmtMoney(resumen.conIva)}</b>
+          </span>
+        ) : null}
         <span>
           Costo (PPP): <b>{fmtMoney(resumen.costo)}</b>
         </span>

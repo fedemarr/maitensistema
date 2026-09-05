@@ -299,12 +299,38 @@ export const bajasInsumo = pgTable("bajas_insumo", {
 
 /* ── Producción ────────────────────────────────────────────── */
 
+/**
+ * Tarifario de la fábrica: precio por unidad y por producto, sin IVA (spec
+ * v1.2 §3.3). Versionado con vigencia; la orden lee el vigente a su fecha y
+ * lo congela, nunca lo escribe.
+ */
 export const preciosFabricacion = pgTable("precios_fabricacion", {
   id: uuid("id").primaryKey().defaultRandom(),
-  /** La fábrica cobra un monto por lote, sin importar unidades. */
-  montoPorLote: money("monto_por_lote"),
+  productoId: uuid("producto_id")
+    .notNull()
+    .references(() => productos.id, { onDelete: "cascade" }),
+  /** Lo que cobra la fábrica por cada unidad de este producto (sin IVA). */
+  precioUnitario: money("precio_unitario"),
   vigenteDesde: date("vigente_desde").notNull().defaultNow(),
   vigenteHasta: date("vigente_hasta"),
+  creadoPor: uuid("creado_por").references(() => perfiles.id, {
+    onDelete: "set null",
+  }),
+  ...timestamps,
+});
+
+/**
+ * Mínimo de compra por orden que exige la fábrica (sin IVA). Una fila por
+ * vigencia; nunca se edita ni se borra (spec v1.2 §3.3).
+ */
+export const minimoCompraFabrica = pgTable("minimo_compra_fabrica", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  monto: money("monto"),
+  vigenteDesde: date("vigente_desde").notNull().defaultNow(),
+  vigenteHasta: date("vigente_hasta"),
+  creadoPor: uuid("creado_por").references(() => perfiles.id, {
+    onDelete: "set null",
+  }),
   ...timestamps,
 });
 
@@ -324,6 +350,13 @@ export const ordenesProduccion = pgTable("ordenes_produccion", {
   fechaCierre: date("fecha_cierre"),
   unidadesPlanificadas: integer("unidades_planificadas").notNull(),
   unidadesObtenidas: integer("unidades_obtenidas"),
+  /** Copiados del tarifario/mínimo vigente a `fecha_prevista` (sin IVA). */
+  precioFabricacionUnitario: money("precio_fabricacion_unitario"),
+  minimoCompraAplicado: money("minimo_compra_aplicado"),
+  minimoCompraId: uuid("minimo_compra_id").references(
+    () => minimoCompraFabrica.id,
+    { onDelete: "set null" },
+  ),
   fabricacionCotizada: money("fabricacion_cotizada"),
   fabricacionCobrada: numeric("fabricacion_cobrada", { precision: 14, scale: 2 }),
   costoMp: numeric("costo_mp", { precision: 14, scale: 2 }),
@@ -428,7 +461,8 @@ export const movimientoItems = pgTable("movimiento_items", {
     .references(() => productos.id, { onDelete: "restrict" }),
   /** Puede ser negativa en ajuste. */
   cantidad: integer("cantidad").notNull(),
-  precioConIva: numeric("precio_con_iva", { precision: 14, scale: 2 }),
+  /** Precio de venta por unidad, SIN IVA (spec v1.2 §1.5). */
+  precioNeto: numeric("precio_neto", { precision: 14, scale: 2 }),
   ingresoNeto: money("ingreso_neto"),
   costo: money("costo"),
   consignacionId: uuid("consignacion_id").references(() => consignaciones.id, {
@@ -471,7 +505,8 @@ export const preciosVenta = pgTable("precios_venta", {
     .notNull()
     .references(() => productos.id, { onDelete: "cascade" }),
   tipoLista: tipoListaPrecio("tipo_lista").notNull().default("retail"),
-  precioConIva: money("precio_con_iva"),
+  /** Precio de venta por unidad, SIN IVA. El "con IVA" es neto × 1,21 (display). */
+  precioNeto: money("precio_neto"),
   vigenteDesde: date("vigente_desde").notNull().defaultNow(),
   vigenteHasta: date("vigente_hasta"), // null = vigente
   ...timestamps,
@@ -603,6 +638,16 @@ export const preciosVentaRelations = relations(preciosVenta, ({ one }) => ({
     references: [productos.id],
   }),
 }));
+
+export const preciosFabricacionRelations = relations(
+  preciosFabricacion,
+  ({ one }) => ({
+    producto: one(productos, {
+      fields: [preciosFabricacion.productoId],
+      references: [productos.id],
+    }),
+  }),
+);
 
 export const ccMovimientosRelations = relations(ccMovimientos, ({ one }) => ({
   movimiento: one(movimientos, {

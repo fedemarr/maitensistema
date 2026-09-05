@@ -136,7 +136,7 @@ export async function generarAsientoMovimiento(
   const items = await tx
     .select({
       cantidad: movimientoItems.cantidad,
-      precioConIva: movimientoItems.precioConIva,
+      precioNeto: movimientoItems.precioNeto,
       costo: movimientoItems.costo,
       ppp: productos.ppp,
     })
@@ -145,15 +145,15 @@ export async function generarAsientoMovimiento(
     .where(eq(movimientoItems.movimientoId, movimientoId));
 
   let costoTotal = 0;
-  let totalConIva = 0;
+  let totalNeto = 0;
   for (const it of items) {
     const abs = Math.abs(it.cantidad);
     const c = Number(it.costo) || abs * Number(it.ppp);
     costoTotal += c;
-    totalConIva += abs * (Number(it.precioConIva) || 0);
+    totalNeto += abs * (Number(it.precioNeto) || 0);
   }
   costoTotal = redondear(costoTotal);
-  totalConIva = redondear(totalConIva);
+  totalNeto = redondear(totalNeto);
 
   const desc = `${TIPO_LABEL[tipo]} ${movimientoId.slice(0, 8)}`;
   const ref = { movimientoId };
@@ -174,8 +174,8 @@ export async function generarAsientoMovimiento(
       lineas: [
         { codigo: CUENTAS.cmv, debe: costoTotal, haber: 0, concepto: "Costo de la mercadería vendida" },
         { codigo: cuentaMerc, debe: 0, haber: costoTotal, concepto: "Baja de mercadería" },
-        { codigo: cuentaCobro, debe: totalConIva, haber: 0 },
-        { codigo: CUENTAS.ventas, debe: 0, haber: totalConIva },
+        { codigo: cuentaCobro, debe: totalNeto, haber: 0 },
+        { codigo: CUENTAS.ventas, debe: 0, haber: totalNeto },
       ],
     });
   }

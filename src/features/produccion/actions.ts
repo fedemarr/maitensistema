@@ -10,6 +10,7 @@ import {
   compraInsumoLineas,
   comprasInsumo,
   lotes,
+  minimoCompraFabrica,
   movimientoItemLotes,
   movimientoItems,
   movimientos,
@@ -27,12 +28,20 @@ import {
 import { registrarAuditoria } from "@/lib/audit";
 import { requireRole } from "@/lib/auth";
 import { pppMovil, round2, round4 } from "@/lib/stock";
-import { getOrdenParaCerrar } from "./queries";
+import {
+  getOrdenParaCerrar,
+  minimoVigente,
+  precioFabricacionVigente,
+} from "./queries";
 import {
   cerrarOrdenInput,
   planificarInput,
+  vigenciaMinimoInput,
+  vigenciaPrecioFabInput,
   type CerrarOrdenInput,
   type PlanificarInput,
+  type VigenciaMinimoInput,
+  type VigenciaPrecioFabInput,
 } from "./schema";
 
 /** Wrapper server-action de la query de cierre (para usar desde el cliente). */
@@ -47,6 +56,7 @@ export type ActionResult =
 
 const revalidar = () => {
   revalidatePath("/produccion");
+  revalidatePath("/produccion/fabrica");
   revalidatePath("/insumos");
   revalidatePath("/stock");
   revalidatePath("/movimientos");
@@ -93,6 +103,21 @@ export async function planificarOrden(
     return { ok: false, error: "Elegí un lote o creá uno nuevo." };
   }
 
+  // Precio y mínimo se toman del tarifario vigente a la fecha de la orden.
+  const precioUnit = await precioFabricacionVigente(
+    data.productoId,
+    data.fechaPrevista,
+  );
+  if (precioUnit == null) {
+    return {
+      ok: false,
+      error:
+        "El producto no tiene precio de fabricación cargado. Cargalo en Producción → Fábrica.",
+    };
+  }
+  const minimo = await minimoVigente(data.fechaPrevista);
+  const cotizada = round2(precioUnit * data.cantidad);
+
   const ordenId = await db.transaction(async (tx) => {
     let loteId = data.loteId;
     if (!loteId && data.nuevoLoteNombre) {
@@ -101,24 +126,6 @@ export async function planificarOrden(
         .values({ nombre: data.nuevoLoteNombre, fecha: data.fechaPrevista })
         .returning({ id: lotes.id });
       loteId = l.id;
-    }
-
-    // Si la fábrica cambió el precio, nueva vigencia desde la fecha de la orden.
-    const vigente = await tx
-      .select()
-      .from(preciosFabricacion)
-      .where(isNull(preciosFabricacion.vigenteHasta))
-      .limit(1);
-    const montoVigente = vigente[0] ? Number(vigente[0].montoPorLote) : null;
-    if (montoVigente !== null && data.fabricacionCotizada !== montoVigente) {
-      await tx
-        .update(preciosFabricacion)
-        .set({ vigenteHasta: diaAnterior(data.fechaPrevista) })
-        .where(eq(preciosFabricacion.id, vigente[0].id));
-      await tx.insert(preciosFabricacion).values({
-        montoPorLote: String(round2(data.fabricacionCotizada)),
-        vigenteDesde: data.fechaPrevista,
-      });
     }
 
     const [orden] = await tx
@@ -130,7 +137,10 @@ export async function planificarOrden(
         estado: "planificada",
         fechaPrevista: data.fechaPrevista,
         unidadesPlanificadas: data.cantidad,
-        fabricacionCotizada: String(round2(data.fabricacionCotizada)),
+        precioFabricacionUnitario: String(round2(precioUnit)),
+        minimoCompraAplicado: String(round2(minimo?.monto ?? 0)),
+        minimoCompraId: minimo?.id ?? null,
+        fabricacionCotizada: String(cotizada),
         creadoPor: user.id,
       })
       .returning({ id: ordenesProduccion.id });
@@ -565,6 +575,114 @@ export async function anularOrden(id: string): Promise<ActionResult> {
     entidad: "orden_produccion",
     entidadId: id,
     datos: { estado: "anulada", revirtioMovimiento: orden.movimientoEntradaId },
+  });
+
+  revalidar();
+  return { ok: true, id };
+}
+
+/* ── Fábrica: tarifario y mínimo (spec v1.2 §3.3) ─────────── */
+
+/** Agrega una vigencia nueva del precio de fabricación de un producto (no pisa la anterior). */
+export async function agregarVigenciaPrecioFab(
+  input: VigenciaPrecioFabInput,
+): Promise<ActionResult> {
+  const user = await requireRole(["admin", "ventas"]);
+
+  const parsed = vigenciaPrecioFabInput.safeParse(input);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: parsed.error.issues[0]?.message ?? "Datos inválidos.",
+    };
+  }
+  const data = parsed.data;
+
+  const id = await db.transaction(async (tx) => {
+    const vigente = await tx
+      .select({ id: preciosFabricacion.id })
+      .from(preciosFabricacion)
+      .where(
+        and(
+          eq(preciosFabricacion.productoId, data.productoId),
+          isNull(preciosFabricacion.vigenteHasta),
+        ),
+      )
+      .limit(1);
+    if (vigente[0]) {
+      await tx
+        .update(preciosFabricacion)
+        .set({ vigenteHasta: diaAnterior(data.vigenteDesde) })
+        .where(eq(preciosFabricacion.id, vigente[0].id));
+    }
+    const [row] = await tx
+      .insert(preciosFabricacion)
+      .values({
+        productoId: data.productoId,
+        precioUnitario: String(round2(data.precioUnitario)),
+        vigenteDesde: data.vigenteDesde,
+        creadoPor: user.id,
+      })
+      .returning({ id: preciosFabricacion.id });
+    return row.id;
+  });
+
+  await registrarAuditoria({
+    actorId: user.id,
+    accion: "crear",
+    entidad: "precio_fabricacion",
+    entidadId: id,
+    datos: { productoId: data.productoId, precioUnitario: data.precioUnitario },
+  });
+
+  revalidar();
+  return { ok: true, id };
+}
+
+/** Agrega una vigencia nueva del mínimo de compra de la fábrica. */
+export async function agregarVigenciaMinimo(
+  input: VigenciaMinimoInput,
+): Promise<ActionResult> {
+  const user = await requireRole(["admin", "ventas"]);
+
+  const parsed = vigenciaMinimoInput.safeParse(input);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: parsed.error.issues[0]?.message ?? "Datos inválidos.",
+    };
+  }
+  const data = parsed.data;
+
+  const id = await db.transaction(async (tx) => {
+    const vigente = await tx
+      .select({ id: minimoCompraFabrica.id })
+      .from(minimoCompraFabrica)
+      .where(isNull(minimoCompraFabrica.vigenteHasta))
+      .limit(1);
+    if (vigente[0]) {
+      await tx
+        .update(minimoCompraFabrica)
+        .set({ vigenteHasta: diaAnterior(data.vigenteDesde) })
+        .where(eq(minimoCompraFabrica.id, vigente[0].id));
+    }
+    const [row] = await tx
+      .insert(minimoCompraFabrica)
+      .values({
+        monto: String(round2(data.monto)),
+        vigenteDesde: data.vigenteDesde,
+        creadoPor: user.id,
+      })
+      .returning({ id: minimoCompraFabrica.id });
+    return row.id;
+  });
+
+  await registrarAuditoria({
+    actorId: user.id,
+    accion: "crear",
+    entidad: "minimo_compra_fabrica",
+    entidadId: id,
+    datos: { monto: data.monto },
   });
 
   revalidar();

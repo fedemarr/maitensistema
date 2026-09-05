@@ -35,24 +35,41 @@ import { fmtCantidad, fmtDate, fmtMoney } from "@/lib/format";
 
 type Terminado = { id: string; nombre: string };
 type Lote = { id: string; nombre: string };
-type PrecioFab = { montoPorLote: string; vigenteDesde: string } | null;
+type Vigencia = { monto: number; vigenteDesde: string; vigenteHasta: string | null };
 
 const hoy = () => new Date().toISOString().slice(0, 10);
 const NUEVO_LOTE = "__new";
 const SIN_LINEAS: LineaPlan[] = [];
 
+/** Última vigencia cuya fecha de inicio es <= `fecha`. */
+function vigenteEn(vigencias: Vigencia[], fecha: string): Vigencia | null {
+  const ordenadas = [...vigencias].sort((a, b) =>
+    a.vigenteDesde.localeCompare(b.vigenteDesde),
+  );
+  let elegida: Vigencia | null = null;
+  for (const v of ordenadas) {
+    if (v.vigenteDesde <= fecha) elegida = v;
+  }
+  return elegida ?? ordenadas[0] ?? null;
+}
+
 export function PlanificarForm({
   terminados,
   lotes,
   recetas,
-  fabVigente,
-  fabHistorial,
+  preciosFab,
+  minimos,
+  fabPorLote,
 }: {
   terminados: Terminado[];
   lotes: Lote[];
   recetas: Record<string, LineaPlan[]>;
-  fabVigente: PrecioFab;
-  fabHistorial: { montoPorLote: string; vigenteDesde: string }[];
+  /** Historial de precio de fabricación por producto (sin IVA). */
+  preciosFab: Record<string, Vigencia[]>;
+  /** Historial del mínimo de compra de la fábrica. */
+  minimos: Vigencia[];
+  /** Fabricación cotizada ya acumulada por lote (planificadas + cerradas). */
+  fabPorLote: Record<string, number>;
 }) {
   const router = useRouter();
   const [productoId, setProductoId] = useState(terminados[0]?.id ?? "");
@@ -60,15 +77,21 @@ export function PlanificarForm({
   const [nuevoLote, setNuevoLote] = useState("");
   const [cantidad, setCantidad] = useState("400");
   const [fecha, setFecha] = useState(hoy());
-  const [fab, setFab] = useState(
-    fabVigente ? String(Number(fabVigente.montoPorLote)) : "",
-  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const lineas = recetas[productoId] ?? SIN_LINEAS;
   const cant = Math.max(1, Number(cantidad) || 1);
-  const fabN = Number(fab) || 0;
+
+  const precioFab = vigenteEn(preciosFab[productoId] ?? [], fecha);
+  const minimo = vigenteEn(minimos, fecha);
+  const precioUnit = precioFab?.monto ?? 0;
+  const cotizada = precioUnit * cant;
+
+  const totalLote = (fabPorLote[loteSel] ?? 0) + cotizada;
+  const minMonto = minimo?.monto ?? 0;
+  const llegaAlMinimo = totalLote + 1e-6 >= minMonto;
+  const faltaMinimo = Math.max(0, minMonto - totalLote);
 
   const plan = useMemo(() => {
     const filas = lineas.map((l) => {
@@ -83,7 +106,7 @@ export function PlanificarForm({
     };
   }, [lineas, cant]);
 
-  const costoTotal = plan.costoMp + fabN;
+  const costoTotal = plan.costoMp + cotizada;
 
   async function crear() {
     if (loteSel === NUEVO_LOTE && !nuevoLote.trim()) {
@@ -98,7 +121,6 @@ export function PlanificarForm({
       nuevoLoteNombre: loteSel === NUEVO_LOTE ? nuevoLote : "",
       cantidad: cant,
       fechaPrevista: fecha,
-      fabricacionCotizada: fabN,
     });
     setSaving(false);
     if (!res.ok) {
@@ -109,9 +131,6 @@ export function PlanificarForm({
     toast.success("Orden planificada. Cuando terminen de fabricar, cerrala.");
     router.refresh();
   }
-
-  const cambioFab =
-    fabVigente && fabN !== Number(fabVigente.montoPorLote) && fabN > 0;
 
   if (terminados.length === 0) {
     return (
@@ -208,36 +227,53 @@ export function PlanificarForm({
           </div>
         ) : null}
 
-        <div className="grid gap-1.5 sm:max-w-md">
-          <Label className="text-xs">
-            Costo de fabricación del lote ($) *
-          </Label>
-          <Input
-            type="number"
-            min="0"
-            value={fab}
-            onChange={(e) => setFab(e.target.value)}
-          />
-          <p className="text-[11px] text-muted-foreground">
-            {fabVigente
-              ? `Vigente ${fmtMoney(fabVigente.montoPorLote)} desde ${fmtDate(fabVigente.vigenteDesde)}. La fábrica cobra este monto por el lote, sin importar las unidades.`
-              : "Sin precio de fabricación cargado."}
-            {fabHistorial.length > 1 ? (
-              <>
-                {" "}
-                Historial:{" "}
-                {fabHistorial
-                  .map(
-                    (h) =>
-                      `${fmtDate(h.vigenteDesde)} ${fmtMoney(h.montoPorLote)}`,
-                  )
-                  .join(" · ")}
+        <div className="rounded-lg border bg-muted/30 p-3 text-sm">
+          <p className="text-[11px] font-semibold uppercase text-muted-foreground">
+            Precio de fabricación por unidad ($ sin IVA)
+          </p>
+          {precioFab ? (
+            <p className="mt-1">
+              <b className="tabular-nums">{fmtMoney(precioUnit)}</b> / u ·
+              cotizada de este lote:{" "}
+              <b className="tabular-nums">{fmtMoney(cotizada)}</b>{" "}
+              <span className="text-xs text-muted-foreground">
+                ({cant} u × {fmtMoney(precioUnit)})
+              </span>
+              <br />
+              <span className="text-xs text-muted-foreground">
+                Tomado del tarifario, vigente desde{" "}
+                {fmtDate(precioFab.vigenteDesde)}. ¿Aumentó la fábrica?{" "}
+                <Link
+                  href="/produccion/fabrica"
+                  className="underline underline-offset-2"
+                >
+                  cargalo en Fábrica
+                </Link>
                 .
-              </>
-            ) : null}
-            {cambioFab
-              ? ` Si confirmás, ${fmtMoney(fabN)} pasa a ser el precio vigente.`
-              : null}
+              </span>
+            </p>
+          ) : (
+            <p className="mt-1 text-destructive">
+              Este producto no tiene precio de fabricación cargado.{" "}
+              <Link href="/produccion/fabrica" className="underline">
+                Cargalo en Fábrica
+              </Link>
+              .
+            </p>
+          )}
+          <p className="mt-2 text-xs">
+            {llegaAlMinimo ? (
+              <span className="text-[var(--color-chart-1)]">
+                ✔ Supera el mínimo de compra del lote: total{" "}
+                {fmtMoney(totalLote)} (mínimo {fmtMoney(minMonto)}).
+              </span>
+            ) : (
+              <span className="font-medium text-destructive">
+                ⚠ No llega al mínimo de compra: faltan {fmtMoney(faltaMinimo)}.
+                Se paga el mínimo igual — agregá unidades o sumá el otro producto
+                a este lote.
+              </span>
+            )}
           </p>
         </div>
 
@@ -334,7 +370,7 @@ export function PlanificarForm({
           ) : null}
           <Button
             onClick={crear}
-            disabled={saving || plan.filas.length === 0}
+            disabled={saving || plan.filas.length === 0 || !precioFab}
           >
             {saving ? "Creando…" : "Crear orden planificada"}
           </Button>

@@ -17,7 +17,7 @@ import {
 import { generarAsientoMovimiento } from "@/features/finanzas/lib/posting";
 import { registrarAuditoria } from "@/lib/audit";
 import { requireRole } from "@/lib/auth";
-import { ingresoNeto, round2, tomarFifo } from "@/lib/stock";
+import { round2, tomarFifo } from "@/lib/stock";
 import {
   movimientoInput,
   reglaDe,
@@ -287,10 +287,9 @@ export async function crearMovimiento(
         }
       }
 
-      // ── Ingreso y costo del ítem ──
-      const precio = it.precioConIva ?? 0;
-      const ing =
-        regla.impacto === "ingreso" ? round2(ingresoNeto(abs, precio)) : 0;
+      // ── Ingreso y costo del ítem (todo sin IVA, spec v1.2 §1.5) ──
+      const precio = it.precioNeto ?? 0;
+      const ing = regla.impacto === "ingreso" ? round2(abs * precio) : 0;
       if (regla.pidePrecio && data.medioPago === "credito") {
         totalCredito += abs * precio;
       }
@@ -312,7 +311,7 @@ export async function crearMovimiento(
           movimientoId: mov.id,
           productoId: it.productoId,
           cantidad: it.cantidad,
-          precioConIva: regla.pidePrecio ? String(round2(precio)) : null,
+          precioNeto: regla.pidePrecio ? String(round2(precio)) : null,
           ingresoNeto: String(ing),
           costo: String(costo),
           consignacionId: consignacionRef,

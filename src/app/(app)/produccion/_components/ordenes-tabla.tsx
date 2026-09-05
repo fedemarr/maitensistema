@@ -140,6 +140,8 @@ export function OrdenesTabla({
               <TableHead className="text-right">Planif.</TableHead>
               <TableHead className="text-right">Obten.</TableHead>
               <TableHead className="text-right">Rend.</TableHead>
+              <TableHead className="text-right">Fábrica / u</TableHead>
+              <TableHead className="text-right">Mínimo</TableHead>
               <TableHead className="text-right">Costo unit.</TableHead>
               <TableHead className="text-right">Desvío MP</TableHead>
               <TableHead></TableHead>
@@ -149,7 +151,7 @@ export function OrdenesTabla({
             {ordenes.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={10}
+                  colSpan={12}
                   className="py-8 text-center text-sm text-muted-foreground"
                 >
                   Sin órdenes.
@@ -182,6 +184,16 @@ export function OrdenesTabla({
                     <TableCell className="text-right tabular-nums">
                       {o.rendimiento != null
                         ? `${(o.rendimiento * 100).toFixed(1)} %`
+                        : "—"}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums text-muted-foreground">
+                      {Number(o.precioFabricacion) > 0
+                        ? fmtMoney(o.precioFabricacion)
+                        : "—"}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums text-muted-foreground">
+                      {Number(o.minimoAplicado) > 0
+                        ? fmtMoney(o.minimoAplicado)
                         : "—"}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
@@ -331,7 +343,7 @@ export function OrdenesTabla({
                 </div>
                 <div className="grid gap-1.5">
                   <Label className="text-xs">
-                    Fabricación cobrada ($) *
+                    Fabricación cobrada ($ sin IVA) *
                   </Label>
                   <Input
                     type="number"
