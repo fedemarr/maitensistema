@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
+import { registrarAuditoria } from "@/lib/audit";
 import { createClient } from "@/lib/supabase/server";
 
 const schema = z.object({
@@ -27,11 +28,18 @@ export async function login(
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword(parsed.data);
+  const { data, error } = await supabase.auth.signInWithPassword(parsed.data);
 
-  if (error) {
+  if (error || !data.user) {
     return { error: "Email o contraseña incorrectos." };
   }
+
+  await registrarAuditoria({
+    actorId: data.user.id,
+    accion: "login",
+    entidad: "sesion",
+    datos: { email: parsed.data.email },
+  });
 
   revalidatePath("/", "layout");
   redirect("/");
@@ -39,6 +47,16 @@ export async function login(
 
 export async function logout() {
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (user) {
+    await registrarAuditoria({
+      actorId: user.id,
+      accion: "logout",
+      entidad: "sesion",
+    });
+  }
   await supabase.auth.signOut();
   revalidatePath("/", "layout");
   redirect("/login");

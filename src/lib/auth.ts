@@ -54,6 +54,13 @@ export async function requireUser(): Promise<SessionUser> {
 export async function requireRole(roles: Rol[]): Promise<SessionUser> {
   const user = await requireUser();
   if (!roles.includes(user.rol)) {
+    const { registrarAuditoria } = await import("@/lib/audit");
+    await registrarAuditoria({
+      actorId: user.id,
+      accion: "acceso_denegado",
+      entidad: "autorizacion",
+      datos: { rolActual: user.rol, rolesRequeridos: roles },
+    });
     throw new Error("No tenés permiso para realizar esta acción.");
   }
   return user;

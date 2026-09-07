@@ -10,6 +10,7 @@ import {
   FactoryIcon,
   LandmarkIcon,
   LayoutDashboardIcon,
+  ShieldCheckIcon,
   PackageIcon,
   ShapesIcon,
   TagIcon,
@@ -63,6 +64,7 @@ const NAV: { seccion: string; items: Item[] }[] = [
       { href: "/config/rubros", label: "Rubros", icon: ShapesIcon },
       { href: "/costos-fijos", label: "Costos fijos", icon: LandmarkIcon },
       { href: "/config/usuarios", label: "Usuarios", icon: UserCogIcon },
+      { href: "/seguridad", label: "Seguridad", icon: ShieldCheckIcon },
     ],
   },
 ];
