@@ -85,6 +85,14 @@ Implementa `docs/ESPECIFICACION_SISTEMA_MAITEN_v1.2.md` (mockup
   lectura (vigente a la fecha, congelado); control del mínimo sobre el
   total del lote. Seed OC N°3 en la migración `0004`.
 
+## Fase 9 — Seguridad / auditoría (07/09/2026)
+
+Visor del registro de auditoría en `/seguridad` (solo admin):
+resumen, actividad por usuario y tabla filtrable (usuario, módulo,
+acción, fechas) con detalle expandible y paginación. La tabla
+`auditoria` ya la alimentaban las 13 features; se agregó el registro
+de login/logout y de accesos denegados (`requireRole`).
+
 ## Fuera de esta fase (spec §7)
 
 Integración Tienda Nube (recibir pedidos + sync de stock), facturación
