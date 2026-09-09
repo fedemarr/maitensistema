@@ -58,14 +58,11 @@ export function OrdenesTabla({
     setCierre(o);
     setObt(String(o.unidadesPlanificadas));
     setFabReal(String(Number(o.fabricacionCotizada)));
+    // Precargar el real EXACTO con el teórico (sin redondear), para que el
+    // desvío arranque en 0 y solo cambie lo que la persona corrige.
     setReales(
       Object.fromEntries(
-        o.lineas.map((l) => [
-          l.insumoId,
-          l.unidad === "kg"
-            ? l.consumoTeorico.toFixed(3)
-            : String(l.consumoTeorico),
-        ]),
+        o.lineas.map((l) => [l.insumoId, String(l.consumoTeorico)]),
       ),
     );
   }
