@@ -29,10 +29,13 @@ export default async function CompraPage() {
   const recetas: Record<
     string,
     { insumoId: string; cantidadPorUnidad: number }[]
-  > = {};
-  for (const t of terminados) {
-    recetas[t.id] = await recetaParaSugerencia(t.id);
-  }
+  > = Object.fromEntries(
+    await Promise.all(
+      terminados.map(
+        async (t) => [t.id, await recetaParaSugerencia(t.id)] as const,
+      ),
+    ),
+  );
 
   return (
     <div className="mx-auto max-w-5xl space-y-4">

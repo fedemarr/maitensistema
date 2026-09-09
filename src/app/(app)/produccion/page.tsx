@@ -30,10 +30,11 @@ export default async function ProduccionPage() {
       fabricacionPorLoteMap(),
     ]);
 
-  const recetas: Record<string, LineaPlan[]> = {};
-  for (const t of terminados) {
-    recetas[t.id] = await recetaConStock(t.id);
-  }
+  const recetas: Record<string, LineaPlan[]> = Object.fromEntries(
+    await Promise.all(
+      terminados.map(async (t) => [t.id, await recetaConStock(t.id)] as const),
+    ),
+  );
 
   return (
     <div className="mx-auto max-w-6xl space-y-5">
