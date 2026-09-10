@@ -197,6 +197,9 @@ export const productos = pgTable("productos", {
   reutilizable: boolean("reutilizable").notNull().default(false),
   vence: boolean("vence").notNull().default(false),
   unidad: unidadInsumo("unidad"),
+  // Mapeo con Tiendanube (se completa al vincular o en el primer match por SKU).
+  tiendanubeProductId: text("tiendanube_product_id"),
+  tiendanubeVariantId: text("tiendanube_variant_id"),
   /** Stock del insumo (materializado: Σ compras − consumos de órdenes − bajas). */
   stockInsumo: qty("stock_insumo"),
   proveedorHabitualId: uuid("proveedor_habitual_id").references(
@@ -421,6 +424,9 @@ export const movimientos = pgTable("movimientos", {
     onDelete: "set null",
   }),
   medioPago: medioPago("medio_pago"),
+  /** "manual" | "tiendanube". `origenExterno` = "tiendanube:<order_id>" (idempotencia). */
+  origen: text("origen").notNull().default("manual"),
+  origenExterno: text("origen_externo").unique(),
   observaciones: text("observaciones"),
   creadoPor: uuid("creado_por").references(() => perfiles.id, {
     onDelete: "set null",
@@ -597,6 +603,22 @@ export const asientoLineas = pgTable("asiento_lineas", {
   debe: money("debe"),
   haber: money("haber"),
   concepto: text("concepto"),
+  ...timestamps,
+});
+
+/* ── Integraciones externas (Tiendanube) ──────────────────── */
+
+export const integraciones = pgTable("integraciones", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  proveedor: text("proveedor").notNull().unique(), // "tiendanube"
+  storeId: text("store_id"),
+  accessToken: text("access_token"),
+  scope: text("scope"),
+  /** "desconectado" | "conectado" | "error" */
+  estado: text("estado").notNull().default("desconectado"),
+  ultimoSync: timestamp("ultimo_sync", { withTimezone: true }),
+  /** JSON: contadores, últimos errores, líneas sin mapear. */
+  datos: text("datos"),
   ...timestamps,
 });
 

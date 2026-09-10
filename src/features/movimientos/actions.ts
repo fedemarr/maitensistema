@@ -49,7 +49,19 @@ export async function crearMovimiento(
   input: MovimientoInput,
 ): Promise<ActionResult> {
   const user = await requireRole(["admin", "ventas"]);
+  return crearMovimientoComo(input, user.id);
+}
 
+/**
+ * Núcleo de creación de movimiento SIN control de permisos. Lo usa la acción
+ * `crearMovimiento` (con el usuario) y el webhook de Tiendanube (con actor
+ * nulo y `meta.origen = "tiendanube"`).
+ */
+export async function crearMovimientoComo(
+  input: MovimientoInput,
+  actorId: string | null,
+  meta: { origen?: string; origenExterno?: string | null } = {},
+): Promise<ActionResult> {
   const parsed = movimientoInput.safeParse(input);
   if (!parsed.success) {
     return {
@@ -109,8 +121,10 @@ export async function crearMovimiento(
         tipo: data.tipo,
         clienteId: clienteId ?? null,
         medioPago: regla.pideMedioPago ? (data.medioPago ?? null) : null,
+        origen: meta.origen ?? "manual",
+        origenExterno: meta.origenExterno ?? null,
         observaciones: data.observaciones,
-        creadoPor: user.id,
+        creadoPor: actorId,
       })
       .returning({ id: movimientos.id });
 
@@ -339,12 +353,12 @@ export async function crearMovimiento(
         origen: "venta_credito",
         medioPago: "credito",
         movimientoId: mov.id,
-        creadoPor: user.id,
+        creadoPor: actorId,
       });
     }
 
     // Asiento contable de partida doble.
-    await generarAsientoMovimiento(tx, mov.id, user.id);
+    await generarAsientoMovimiento(tx, mov.id, actorId);
 
     return { ok: true as const, id: mov.id, clienteId };
   });
@@ -352,7 +366,7 @@ export async function crearMovimiento(
   if (!result.ok) return result;
 
   await registrarAuditoria({
-    actorId: user.id,
+    actorId,
     accion: "crear",
     entidad: "movimiento",
     entidadId: result.id,

@@ -121,7 +121,7 @@ async function insertarAsiento(
 export async function generarAsientoMovimiento(
   tx: Tx,
   movimientoId: string,
-  creadorId: string,
+  creadorId: string | null,
 ): Promise<string | null> {
   const mov = await tx.query.movimientos.findFirst({
     where: eq(movimientos.id, movimientoId),
@@ -238,7 +238,7 @@ export async function generarAsientoMovimiento(
 export async function generarAsientoCompra(
   tx: Tx,
   compraId: string,
-  creadorId: string,
+  creadorId: string | null,
 ): Promise<string | null> {
   const compra = await tx.query.comprasInsumo.findFirst({
     where: eq(comprasInsumo.id, compraId),
@@ -273,7 +273,7 @@ export async function generarAsientoCompra(
 export async function generarAsientoProduccion(
   tx: Tx,
   ordenId: string,
-  creadorId: string,
+  creadorId: string | null,
 ): Promise<string | null> {
   const orden = await tx.query.ordenesProduccion.findFirst({
     where: eq(ordenesProduccion.id, ordenId),
@@ -301,7 +301,7 @@ export async function generarAsientoProduccion(
 export async function generarAsientoBaja(
   tx: Tx,
   bajaId: string,
-  creadorId: string,
+  creadorId: string | null,
 ): Promise<string | null> {
   const baja = await tx.query.bajasInsumo.findFirst({
     where: eq(bajasInsumo.id, bajaId),
@@ -327,7 +327,7 @@ export async function generarAsientoBaja(
 export async function generarAsientoCobro(
   tx: Tx,
   ccMovimientoId: string,
-  creadorId: string,
+  creadorId: string | null,
 ): Promise<string | null> {
   const cc = await tx.query.ccMovimientos.findFirst({
     where: eq(ccMovimientos.id, ccMovimientoId),
@@ -353,7 +353,7 @@ export async function generarAsientoCobro(
 export async function generarAsientoPago(
   tx: Tx,
   ccMovimientoId: string,
-  creadorId: string,
+  creadorId: string | null,
 ): Promise<string | null> {
   const cc = await tx.query.ccMovimientos.findFirst({
     where: eq(ccMovimientos.id, ccMovimientoId),

@@ -9,6 +9,7 @@ const PUBLIC_PATHS = [
   "/auth",
   "/recuperar",
   "/actualizar-clave",
+  "/api/tiendanube", // webhook y cron: sin sesión; oauth: viene del redirect
 ];
 
 /**
