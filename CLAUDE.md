@@ -15,8 +15,10 @@ string). Deploy: Vercel, auto-deploy en push a `main`.
 - La base está en **`sa-east-1` (São Paulo)**. Las funciones de Vercel deben
   correr en **`gru1`** — `vercel.json` lo fija. Si se saca, cada request cruza
   ~120 ms EE.UU.↔Brasil y la app se siente congelada.
-- `DATABASE_URL` usa el **pooler en modo transacción, puerto `6543`**
-  (`prepare: false`, `max: 1` en `src/db/index.ts`). Nunca el `5432`.
+- `DATABASE_URL` usa el **pooler en modo SESIÓN, puerto `5432`**
+  (`prepare: false`, `max: 3` en `src/db/index.ts`). **NO usar el `6543`**
+  (modo transacción): `postgres.js` pipelinea consultas concurrentes y
+  Supavisor transaccional se cuelga con `Promise.all` de 6+ queries.
 - Las páginas son todas dinámicas (server-render por request). Cada
   navegación hace: middleware `getUser()` + page `getUser()` + query de
   `perfiles` + queries de datos. No agregar más round-trips en serie —
