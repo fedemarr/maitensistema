@@ -30,6 +30,12 @@ export default async function AsientosPage() {
         </p>
       </div>
 
+      {asientos.length >= 500 ? (
+        <p className="text-xs text-muted-foreground">
+          Mostrando los 500 asientos más recientes.
+        </p>
+      ) : null}
+
       <Card>
         <CardContent className="p-0">
           <div className="overflow-x-auto">

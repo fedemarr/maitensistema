@@ -33,12 +33,15 @@ export type FiltrosMovimientos = {
   productoId?: string;
   desde?: string;
   hasta?: string;
+  /** Tope de filas para no traer todo el historial (default 500). */
+  limite?: number;
 };
 
 /** Historial: una fila por ítem de movimiento, recientes primero. */
 export async function listMovimientos(
   f: FiltrosMovimientos = {},
 ): Promise<MovimientoRow[]> {
+  const limite = f.limite ?? 500;
   const cond = [];
   if (f.tipo) cond.push(eq(movimientos.tipo, f.tipo as TipoManual));
   if (f.productoId) cond.push(eq(movimientoItems.productoId, f.productoId));
@@ -64,7 +67,8 @@ export async function listMovimientos(
     .innerJoin(productos, eq(movimientoItems.productoId, productos.id))
     .leftJoin(clientes, eq(movimientos.clienteId, clientes.id))
     .where(cond.length ? and(...cond) : undefined)
-    .orderBy(desc(movimientos.fecha), desc(movimientos.createdAt));
+    .orderBy(desc(movimientos.fecha), desc(movimientos.createdAt))
+    .limit(limite);
 
   const itemIds = rows.map((r) => r.itemId);
   const lotesByItem = new Map<string, string[]>();

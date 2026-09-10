@@ -160,7 +160,7 @@ export async function estadoResultados(desde: string, hasta: string) {
 
 /* ── Asientos ──────────────────────────────────────────────── */
 
-export async function listAsientos() {
+export async function listAsientos(limite = 500) {
   const rows = await db
     .select({
       id: asientos.id,
@@ -175,7 +175,8 @@ export async function listAsientos() {
     .from(asientos)
     .leftJoin(asientoLineas, eq(asientoLineas.asientoId, asientos.id))
     .groupBy(asientos.id)
-    .orderBy(desc(asientos.fecha), desc(asientos.createdAt));
+    .orderBy(desc(asientos.fecha), desc(asientos.createdAt))
+    .limit(limite);
 
   return rows.map((r) => ({
     id: r.id,

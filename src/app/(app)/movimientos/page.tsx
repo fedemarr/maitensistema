@@ -29,6 +29,13 @@ export default async function MovimientosPage() {
         ) : null}
       </div>
 
+      {rows.length >= 500 ? (
+        <p className="text-xs text-muted-foreground">
+          Mostrando los 500 movimientos más recientes. Para históricos completos,
+          usá Reportes.
+        </p>
+      ) : null}
+
       <MovimientosHistorial rows={rows} />
     </div>
   );
