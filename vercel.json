@@ -4,7 +4,7 @@
   "crons": [
     {
       "path": "/api/tiendanube/sync",
-      "schedule": "*/15 * * * *"
+      "schedule": "0 4 * * *"
     }
   ]
 }

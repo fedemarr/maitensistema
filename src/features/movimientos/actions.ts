@@ -2,6 +2,7 @@
 
 import { and, asc, eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 
 import { db } from "@/db";
 import {
@@ -49,7 +50,17 @@ export async function crearMovimiento(
   input: MovimientoInput,
 ): Promise<ActionResult> {
   const user = await requireRole(["admin", "ventas"]);
-  return crearMovimientoComo(input, user.id);
+  const res = await crearMovimientoComo(input, user.id);
+  if (res.ok) {
+    // Cambió el stock: empujarlo a Tiendanube después de responder.
+    after(async () => {
+      const { sincronizarStockSeguro } = await import(
+        "@/features/tiendanube/sync"
+      );
+      await sincronizarStockSeguro();
+    });
+  }
+  return res;
 }
 
 /**

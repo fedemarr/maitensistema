@@ -2,6 +2,7 @@
 
 import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 
 import { db } from "@/db";
 import {
@@ -43,6 +44,14 @@ import {
   type VigenciaMinimoInput,
   type VigenciaPrecioFabInput,
 } from "./schema";
+
+/** Empuja el stock a Tiendanube después de responder (no bloquea, no explota). */
+function syncTiendanubeLuego() {
+  after(async () => {
+    const { sincronizarStockSeguro } = await import("@/features/tiendanube/sync");
+    await sincronizarStockSeguro();
+  });
+}
 
 /** Wrapper server-action de la query de cierre (para usar desde el cliente). */
 export async function getOrdenCierre(id: string) {
@@ -460,6 +469,7 @@ export async function cerrarOrden(
   });
 
   revalidar();
+  syncTiendanubeLuego();
   return { ok: true, id: orden.id };
 }
 
@@ -578,6 +588,7 @@ export async function anularOrden(id: string): Promise<ActionResult> {
   });
 
   revalidar();
+  syncTiendanubeLuego();
   return { ok: true, id };
 }
 

@@ -79,3 +79,17 @@ function safeParse(s: string): Record<string, unknown> {
     return {};
   }
 }
+
+/**
+ * Versión "no explota": si la integración no está conectada o algo falla,
+ * loguea y sigue. Pensada para llamar con `after()` tras un movimiento o
+ * cierre de producción, sin bloquear la respuesta.
+ */
+export async function sincronizarStockSeguro(): Promise<void> {
+  try {
+    if (!(await credencialesTN())) return;
+    await sincronizarStock();
+  } catch (e) {
+    console.error("sync tiendanube (after):", e);
+  }
+}
