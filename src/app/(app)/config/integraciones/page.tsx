@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getIntegracionTN } from "@/features/tiendanube/queries";
 import { requireUser } from "@/lib/auth";
 
+import { AfipPanel } from "./_components/afip-panel";
 import { IntegracionesPanel } from "./_components/integraciones-panel";
 
 export const metadata = { title: "Integraciones — Maitén" };
@@ -34,6 +35,11 @@ export default async function IntegracionesPage({
         appId={APP_ID}
         aviso={sp.tn ?? null}
         avisoDetalle={sp.detalle ?? null}
+      />
+
+      <AfipPanel
+        cuit={process.env.AFIP_CUIT ?? ""}
+        puntoVenta={process.env.AFIP_PUNTO_VENTA ?? ""}
       />
     </div>
   );

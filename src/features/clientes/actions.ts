@@ -42,6 +42,7 @@ export async function guardarCliente(
           email: data.email,
           telefono: data.telefono,
           cuit: data.cuit,
+          condicionIva: data.condicionIva,
           notas: data.notas,
         })
         .where(eq(clientes.id, cid));
@@ -54,6 +55,7 @@ export async function guardarCliente(
           email: data.email,
           telefono: data.telefono,
           cuit: data.cuit,
+          condicionIva: data.condicionIva,
           notas: data.notas,
         })
         .returning({ id: clientes.id });

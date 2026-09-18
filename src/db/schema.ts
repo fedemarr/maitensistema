@@ -51,6 +51,15 @@ export const tipoCliente = pgEnum("tipo_cliente", [
   "prensa_influencer",
 ]);
 
+/** Condición frente al IVA del cliente (AFIP/ARCA). Define el tipo de
+ * comprobante: responsable_inscripto → Factura A; el resto → Factura B. */
+export const condicionIvaCliente = pgEnum("condicion_iva_cliente", [
+  "responsable_inscripto",
+  "monotributo",
+  "exento",
+  "consumidor_final",
+]);
+
 export const unidadInsumo = pgEnum("unidad_insumo", ["kg", "u"]);
 
 export const motivoBaja = pgEnum("motivo_baja_insumo", [
@@ -166,6 +175,9 @@ export const clientes = pgTable("clientes", {
   email: text("email"),
   telefono: text("telefono"),
   cuit: text("cuit"),
+  condicionIva: condicionIvaCliente("condicion_iva")
+    .notNull()
+    .default("consumidor_final"),
   notas: text("notas"),
   activo: boolean("activo").notNull().default(true),
   ...timestamps,
@@ -606,19 +618,51 @@ export const asientoLineas = pgTable("asiento_lineas", {
   ...timestamps,
 });
 
-/* ── Integraciones externas (Tiendanube) ──────────────────── */
+/* ── Integraciones externas (Tiendanube, AFIP/ARCA) ────────── */
 
 export const integraciones = pgTable("integraciones", {
   id: uuid("id").primaryKey().defaultRandom(),
-  proveedor: text("proveedor").notNull().unique(), // "tiendanube"
+  proveedor: text("proveedor").notNull().unique(), // "tiendanube" | "afip"
   storeId: text("store_id"),
   accessToken: text("access_token"),
   scope: text("scope"),
   /** "desconectado" | "conectado" | "error" */
   estado: text("estado").notNull().default("desconectado"),
   ultimoSync: timestamp("ultimo_sync", { withTimezone: true }),
-  /** JSON: contadores, últimos errores, líneas sin mapear. */
+  /** JSON: contadores, últimos errores, líneas sin mapear (TN); ticket
+   * WSAA cacheado -- token/sign/expiracion -- (AFIP). */
   datos: text("datos"),
+  ...timestamps,
+});
+
+/**
+ * Facturas emitidas por AFIP/ARCA (WSFEv1) para un movimiento de venta.
+ * Un movimiento factura a lo sumo una vez (`movimientoId` único). El CAE es
+ * el comprobante de que ARCA autorizó la operación; no se puede "deshacer".
+ */
+export const facturas = pgTable("facturas", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  movimientoId: uuid("movimiento_id")
+    .notNull()
+    .unique()
+    .references(() => movimientos.id, { onDelete: "restrict" }),
+  puntoVenta: integer("punto_venta").notNull(),
+  /** "A" | "B" (RI vs el resto; Maitén es Responsable Inscripto). */
+  tipoComprobante: text("tipo_comprobante").notNull(),
+  /** Código AFIP del comprobante: 1 = Factura A, 6 = Factura B. */
+  codigoComprobante: integer("codigo_comprobante").notNull(),
+  numero: integer("numero").notNull(),
+  cae: text("cae").notNull(),
+  caeVencimiento: date("cae_vencimiento").notNull(),
+  /** Tipo/número de doc del receptor: 80 = CUIT, 96 = DNI, 99 = sin identificar. */
+  docTipo: integer("doc_tipo").notNull(),
+  docNro: text("doc_nro").notNull(),
+  importeNeto: money("importe_neto"),
+  importeIva: money("importe_iva"),
+  importeTotal: money("importe_total"),
+  emitidoPor: uuid("emitido_por").references(() => perfiles.id, {
+    onDelete: "set null",
+  }),
   ...timestamps,
 });
 

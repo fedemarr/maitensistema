@@ -17,7 +17,12 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { guardarCliente } from "@/features/clientes/actions";
 import type { Cliente } from "@/features/clientes/queries";
-import { TIPO_LABEL, tipoClienteEnum } from "@/features/clientes/schema";
+import {
+  CONDICION_IVA_LABEL,
+  condicionIvaEnum,
+  TIPO_LABEL,
+  tipoClienteEnum,
+} from "@/features/clientes/schema";
 
 export function ClienteForm({
   cliente,
@@ -32,6 +37,9 @@ export function ClienteForm({
   const [email, setEmail] = useState(cliente?.email ?? "");
   const [telefono, setTelefono] = useState(cliente?.telefono ?? "");
   const [cuit, setCuit] = useState(cliente?.cuit ?? "");
+  const [condicionIva, setCondicionIva] = useState(
+    cliente?.condicionIva ?? "consumidor_final",
+  );
   const [notas, setNotas] = useState(cliente?.notas ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,6 +47,10 @@ export function ClienteForm({
   const tipoItems = tipoClienteEnum.map((t) => ({
     label: TIPO_LABEL[t],
     value: t,
+  }));
+  const condicionIvaItems = condicionIvaEnum.map((c) => ({
+    label: CONDICION_IVA_LABEL[c],
+    value: c,
   }));
 
   async function onSubmit(e: React.FormEvent) {
@@ -52,6 +64,7 @@ export function ClienteForm({
       email: email || "",
       telefono: telefono || "",
       cuit: cuit || "",
+      condicionIva: condicionIva as (typeof condicionIvaEnum)[number],
       notas: notas || "",
     };
 
@@ -127,6 +140,28 @@ export function ClienteForm({
             onChange={(e) => setCuit(e.target.value)}
             placeholder="20-12345678-9"
           />
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor="condicionIva">Condición frente al IVA *</Label>
+          <Select
+            items={condicionIvaItems}
+            value={condicionIva}
+            onValueChange={(v) => setCondicionIva(v || "consumidor_final")}
+          >
+            <SelectTrigger id="condicionIva" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {condicionIvaItems.map((it) => (
+                <SelectItem key={it.value} value={it.value}>
+                  {it.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            Define si la factura de AFIP es A (Responsable Inscripto) o B.
+          </p>
         </div>
       </div>
 

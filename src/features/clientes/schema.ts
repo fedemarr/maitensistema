@@ -20,6 +20,23 @@ export const TIPO_LABEL: Record<TipoCliente, string> = {
   prensa_influencer: "Prensa / influencer",
 };
 
+/** Condición frente al IVA (AFIP/ARCA). Define Factura A (RI) vs B (resto). */
+export const condicionIvaEnum = [
+  "responsable_inscripto",
+  "monotributo",
+  "exento",
+  "consumidor_final",
+] as const;
+
+export type CondicionIva = (typeof condicionIvaEnum)[number];
+
+export const CONDICION_IVA_LABEL: Record<CondicionIva, string> = {
+  responsable_inscripto: "Responsable Inscripto",
+  monotributo: "Monotributo",
+  exento: "Exento",
+  consumidor_final: "Consumidor Final",
+};
+
 export const clienteInput = z.object({
   nombre: z.string().trim().min(1, "El nombre es obligatorio.").max(160),
   tipo: z.enum(tipoClienteEnum),
@@ -41,6 +58,7 @@ export const clienteInput = z.object({
     .max(20)
     .optional()
     .transform((v) => (v ? v : null)),
+  condicionIva: z.enum(condicionIvaEnum).default("consumidor_final"),
   notas: z
     .string()
     .trim()

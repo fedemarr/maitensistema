@@ -6,6 +6,7 @@ import { db } from "@/db";
 import {
   clientes,
   consignaciones,
+  facturas,
   lotes,
   movimientoItemLotes,
   movimientoItems,
@@ -26,6 +27,9 @@ export type MovimientoRow = {
   cantidad: number;
   ingresoNeto: string;
   costo: string;
+  facturaTipo: string | null;
+  facturaNumero: number | null;
+  facturaPuntoVenta: number | null;
 };
 
 export type FiltrosMovimientos = {
@@ -61,11 +65,15 @@ export async function listMovimientos(
       ingresoNeto: movimientoItems.ingresoNeto,
       costo: movimientoItems.costo,
       createdAt: movimientos.createdAt,
+      facturaTipo: facturas.tipoComprobante,
+      facturaNumero: facturas.numero,
+      facturaPuntoVenta: facturas.puntoVenta,
     })
     .from(movimientoItems)
     .innerJoin(movimientos, eq(movimientoItems.movimientoId, movimientos.id))
     .innerJoin(productos, eq(movimientoItems.productoId, productos.id))
     .leftJoin(clientes, eq(movimientos.clienteId, clientes.id))
+    .leftJoin(facturas, eq(facturas.movimientoId, movimientos.id))
     .where(cond.length ? and(...cond) : undefined)
     .orderBy(desc(movimientos.fecha), desc(movimientos.createdAt))
     .limit(limite);
@@ -102,6 +110,9 @@ export async function listMovimientos(
     cantidad: r.cantidad,
     ingresoNeto: r.ingresoNeto,
     costo: r.costo,
+    facturaTipo: r.facturaTipo,
+    facturaNumero: r.facturaNumero,
+    facturaPuntoVenta: r.facturaPuntoVenta,
   }));
 }
 

@@ -1,8 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useMemo, useState, useTransition } from "react";
+import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -18,15 +21,36 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { facturarMovimiento } from "@/features/afip/actions";
 import type { MovimientoRow } from "@/features/movimientos/queries";
 import { TIPO_LABEL } from "@/features/movimientos/schema";
 import { fmtDate, fmtMoney, fmtNumber } from "@/lib/format";
 
 const ENTRA = new Set(["produccion", "devolucion_consignacion"]);
+const FACTURABLE = new Set(["venta", "venta_consignacion"]);
 
 export function MovimientosHistorial({ rows }: { rows: MovimientoRow[] }) {
+  const router = useRouter();
   const [tipo, setTipo] = useState("todos");
   const [prod, setProd] = useState("todos");
+  const [pendingId, setPendingId] = useState<string | null>(null);
+  const [, startTransition] = useTransition();
+
+  function facturar(movimientoId: string) {
+    setPendingId(movimientoId);
+    startTransition(async () => {
+      const res = await facturarMovimiento(movimientoId);
+      setPendingId(null);
+      if (!res.ok) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success(
+        `Factura ${res.tipoComprobante} N.º ${res.numero} — CAE ${res.cae}`,
+      );
+      router.refresh();
+    });
+  }
 
   const productos = useMemo(
     () => [...new Set(rows.map((r) => r.producto))].sort(),
@@ -99,13 +123,14 @@ export function MovimientosHistorial({ rows }: { rows: MovimientoRow[] }) {
               <TableHead className="text-right">Unidades</TableHead>
               <TableHead className="text-right">Ingreso</TableHead>
               <TableHead className="text-right">Costo</TableHead>
+              <TableHead>Comprobante</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filtrados.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={8}
+                  colSpan={9}
                   className="py-8 text-center text-sm text-muted-foreground"
                 >
                   Sin movimientos.
@@ -154,6 +179,28 @@ export function MovimientosHistorial({ rows }: { rows: MovimientoRow[] }) {
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
                       {Number(r.costo) ? fmtMoney(r.costo) : "—"}
+                    </TableCell>
+                    <TableCell>
+                      {r.facturaNumero ? (
+                        <Badge variant="outline" className="font-mono text-[11px]">
+                          {r.facturaTipo}{" "}
+                          {String(r.facturaPuntoVenta).padStart(5, "0")}-
+                          {String(r.facturaNumero).padStart(8, "0")}
+                        </Badge>
+                      ) : FACTURABLE.has(r.tipo) ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={pendingId === r.movimientoId}
+                          onClick={() => facturar(r.movimientoId)}
+                        >
+                          {pendingId === r.movimientoId
+                            ? "Facturando…"
+                            : "Facturar"}
+                        </Button>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
                     </TableCell>
                   </TableRow>
                 );
