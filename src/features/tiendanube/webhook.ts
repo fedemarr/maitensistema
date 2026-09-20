@@ -159,16 +159,17 @@ export async function procesarPedido(orderId: number): Promise<Resultado> {
     return { ok: true, estado: "sin_mapear" };
   }
 
-  const clienteRow = await db.query.clientes.findFirst({
-    where: sql`lower(${clientes.nombre}) = lower(${CLIENTE_TN})`,
-    columns: { id: true },
-  });
+  const clienteId = await clienteDelPedido(
+    order.contact_name,
+    order.contact_email,
+    order.contact_identification,
+  );
 
   const res = await crearMovimientoComo(
     {
       tipo: "venta",
       fecha: order.created_at.slice(0, 10),
-      clienteId: clienteRow?.id ?? "",
+      clienteId,
       medioPago: "tienda_nube",
       loteId: "",
       observaciones: `Tiendanube #${order.number}${
@@ -191,6 +192,47 @@ export async function procesarPedido(orderId: number): Promise<Resultado> {
   });
 
   return { ok: true, estado: "creado" };
+}
+
+/**
+ * Cliente de la venta online. Si el comprador cargó DNI/CUIT en el checkout,
+ * se busca (o crea) un cliente con ese documento: así la factura de AFIP sale
+ * identificando al comprador. Sin documento, queda el genérico "Consumidor
+ * final (Tienda Nube)". Devuelve "" si ni el genérico existe.
+ */
+async function clienteDelPedido(
+  nombre: string | null,
+  email: string | null,
+  identificacion: string | null,
+): Promise<string> {
+  const doc = (identificacion ?? "").replace(/\D/g, "");
+  // DNI (7-8 dígitos) o CUIT (11); cualquier otra cosa se ignora.
+  if (doc.length === 7 || doc.length === 8 || doc.length === 11) {
+    const existente = await db.query.clientes.findFirst({
+      where: sql`regexp_replace(${clientes.cuit}, '\\D', '', 'g') = ${doc}`,
+      columns: { id: true },
+    });
+    if (existente) return existente.id;
+
+    const [nuevo] = await db
+      .insert(clientes)
+      .values({
+        nombre: nombre?.trim() || `Comprador Tienda Nube ${doc}`,
+        tipo: "particular",
+        email: email || null,
+        cuit: doc,
+        condicionIva: "consumidor_final",
+        notas: "Alta automática desde Tienda Nube",
+      })
+      .returning({ id: clientes.id });
+    return nuevo.id;
+  }
+
+  const generico = await db.query.clientes.findFirst({
+    where: sql`lower(${clientes.nombre}) = lower(${CLIENTE_TN})`,
+    columns: { id: true },
+  });
+  return generico?.id ?? "";
 }
 
 /**

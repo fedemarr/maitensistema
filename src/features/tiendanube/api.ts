@@ -61,6 +61,8 @@ export type TNOrder = {
   number: number;
   contact_email: string | null;
   contact_name: string | null;
+  /** DNI o CUIT que el comprador cargó en el checkout (puede venir vacío). */
+  contact_identification: string | null;
   payment_status: string;
   gateway: string | null;
   created_at: string;

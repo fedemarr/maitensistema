@@ -57,8 +57,14 @@ export async function facturarMovimiento(movimientoId: string): Promise<ActionRe
     };
   }
 
-  const docNro = mov.clienteCuit ? mov.clienteCuit.replace(/\D/g, "") : "0";
-  const docTipo = mov.clienteCuit ? 80 : 99;
+  // El campo "CUIT" del cliente también admite DNI: 11 dígitos = CUIT (80),
+  // 7-8 = DNI (96), cualquier otra cosa = consumidor final sin identificar (99).
+  const digitos = (mov.clienteCuit ?? "").replace(/\D/g, "");
+  const docTipo = digitos.length === 11 ? 80 : digitos.length >= 7 && digitos.length <= 8 ? 96 : 99;
+  const docNro = docTipo === 99 ? "0" : digitos;
+  if (esRI && docTipo !== 80) {
+    return { ok: false, error: "Para Factura A el cliente necesita un CUIT válido (11 dígitos)." };
+  }
   const condicionIvaReceptorId = mapConditionIva(mov.clienteCondicionIva);
   const tipoComprobante = esRI ? "A" : "B";
   const cbteTipo = esRI ? CBTE_TIPO.facturaA : CBTE_TIPO.facturaB;

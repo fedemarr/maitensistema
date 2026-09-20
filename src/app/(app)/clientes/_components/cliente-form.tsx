@@ -133,7 +133,7 @@ export function ClienteForm({
           />
         </div>
         <div className="grid gap-2">
-          <Label htmlFor="cuit">CUIT</Label>
+          <Label htmlFor="cuit">CUIT / DNI</Label>
           <Input
             id="cuit"
             value={cuit}
