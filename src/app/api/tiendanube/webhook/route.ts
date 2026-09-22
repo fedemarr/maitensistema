@@ -3,6 +3,9 @@ import { NextResponse, type NextRequest } from "next/server";
 import { procesarPedido, verificarFirma } from "@/features/tiendanube/webhook";
 
 export const dynamic = "force-dynamic";
+// Trae el pedido a Tiendanube + varias consultas a la base: puede pasar los
+// 10s por defecto del plan Hobby, sobre todo en cold start.
+export const maxDuration = 60;
 
 /**
  * Webhook de Tiendanube (order/created, order/paid). Verifica la firma HMAC,
