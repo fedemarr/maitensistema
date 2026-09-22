@@ -45,9 +45,12 @@ export function MovimientosHistorial({ rows }: { rows: MovimientoRow[] }) {
         toast.error(res.error);
         return;
       }
-      toast.success(
-        `Factura ${res.tipoComprobante} N.º ${res.numero} — CAE ${res.cae}`,
-      );
+      const base = `Factura ${res.tipoComprobante} N.º ${res.numero} — CAE ${res.cae}`;
+      if (res.enviada) {
+        toast.success(`${base} · enviada por mail`);
+      } else {
+        toast.warning(`${base} · no se pudo enviar: ${res.envioError ?? "sin motivo"}`);
+      }
       router.refresh();
     });
   }
@@ -182,19 +185,29 @@ export function MovimientosHistorial({ rows }: { rows: MovimientoRow[] }) {
                     </TableCell>
                     <TableCell>
                       {r.facturaId ? (
-                        <a
-                          href={`/api/facturas/${r.facturaId}/pdf`}
-                          className="inline-block"
-                        >
-                          <Badge
-                            variant="outline"
-                            className="font-mono text-[11px] hover:bg-muted"
+                        <div className="flex items-center gap-1.5">
+                          <a
+                            href={`/api/facturas/${r.facturaId}/pdf`}
+                            className="inline-block"
                           >
-                            {r.facturaTipo}{" "}
-                            {String(r.facturaPuntoVenta).padStart(5, "0")}-
-                            {String(r.facturaNumero).padStart(8, "0")} ↓
-                          </Badge>
-                        </a>
+                            <Badge
+                              variant="outline"
+                              className="font-mono text-[11px] hover:bg-muted"
+                            >
+                              {r.facturaTipo}{" "}
+                              {String(r.facturaPuntoVenta).padStart(5, "0")}-
+                              {String(r.facturaNumero).padStart(8, "0")} ↓
+                            </Badge>
+                          </a>
+                          {r.facturaEnviada === false ? (
+                            <span
+                              className="text-[11px] text-destructive"
+                              title="No se pudo enviar por mail"
+                            >
+                              sin enviar
+                            </span>
+                          ) : null}
+                        </div>
                       ) : FACTURABLE.has(r.tipo) ? (
                         <Button
                           size="sm"

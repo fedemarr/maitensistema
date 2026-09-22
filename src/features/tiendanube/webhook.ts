@@ -2,6 +2,7 @@ import "server-only";
 
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { and, eq, isNull, sql } from "drizzle-orm";
+import { after } from "next/server";
 
 import { db } from "@/db";
 import {
@@ -11,6 +12,7 @@ import {
   preciosVenta,
   productos,
 } from "@/db/schema";
+import { facturarYEnviarSeguro } from "@/features/afip/actions";
 import { crearMovimientoComo } from "@/features/movimientos/actions";
 import { registrarAuditoria } from "@/lib/audit";
 import { round2 } from "@/lib/stock";
@@ -190,6 +192,13 @@ export async function procesarPedido(orderId: number): Promise<Resultado> {
     entidadId: res.id,
     datos: { origen: "tiendanube", pedido: order.number, sinMapear },
   });
+
+  // Facturar + enviar solo si el pedido mapeó completo: con líneas sin
+  // mapear, el importe no reflejaría lo que realmente pagó el cliente.
+  if (sinMapear.length === 0) {
+    const movimientoId = res.id;
+    after(() => facturarYEnviarSeguro(movimientoId));
+  }
 
   return { ok: true, estado: "creado" };
 }

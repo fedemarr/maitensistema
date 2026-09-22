@@ -31,6 +31,7 @@ export type MovimientoRow = {
   facturaTipo: string | null;
   facturaNumero: number | null;
   facturaPuntoVenta: number | null;
+  facturaEnviada: boolean | null;
 };
 
 export type FiltrosMovimientos = {
@@ -70,6 +71,7 @@ export async function listMovimientos(
       facturaTipo: facturas.tipoComprobante,
       facturaNumero: facturas.numero,
       facturaPuntoVenta: facturas.puntoVenta,
+      facturaEnviada: facturas.enviada,
     })
     .from(movimientoItems)
     .innerJoin(movimientos, eq(movimientoItems.movimientoId, movimientos.id))
@@ -116,6 +118,7 @@ export async function listMovimientos(
     facturaTipo: r.facturaTipo,
     facturaNumero: r.facturaNumero,
     facturaPuntoVenta: r.facturaPuntoVenta,
+    facturaEnviada: r.facturaEnviada,
   }));
 }
 

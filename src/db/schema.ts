@@ -663,6 +663,10 @@ export const facturas = pgTable("facturas", {
   emitidoPor: uuid("emitido_por").references(() => perfiles.id, {
     onDelete: "set null",
   }),
+  enviada: boolean("enviada").notNull().default(false),
+  enviadaEn: timestamp("enviada_en", { withTimezone: true }),
+  /** Motivo si el envío falló (sin email, error del proveedor, etc.). */
+  envioError: text("envio_error"),
   ...timestamps,
 });
 

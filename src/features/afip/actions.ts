@@ -7,10 +7,19 @@ import { facturas } from "@/db/schema";
 import { registrarAuditoria } from "@/lib/audit";
 import { requireRole } from "@/lib/auth";
 import { facturaDeMovimiento, movimientoParaFacturar } from "./queries";
+import { enviarFacturaPorMail } from "./lib/mailer";
 import { CBTE_TIPO, feCaeSolicitar, feCompUltimoAutorizado, feDummy } from "./lib/wsfe";
 
 export type ActionResult =
-  | { ok: true; id: string; cae: string; numero: number; tipoComprobante: string }
+  | {
+      ok: true;
+      id: string;
+      cae: string;
+      numero: number;
+      tipoComprobante: string;
+      enviada: boolean;
+      envioError?: string;
+    }
   | { ok: false; error: string };
 
 /** Chequeo de conectividad (no emite nada) — para el panel de Integraciones. */
@@ -37,7 +46,18 @@ export async function probarConexionAfip(): Promise<
  */
 export async function facturarMovimiento(movimientoId: string): Promise<ActionResult> {
   const user = await requireRole(["admin", "ventas"]);
+  return facturarMovimientoComo(movimientoId, user.id);
+}
 
+/**
+ * Núcleo de la emisión, sin chequeo de rol — lo usa `facturarMovimiento`
+ * (Server Action, con usuario logueado) y el webhook de Tiendanube (sin
+ * sesión, `actorId: null`).
+ */
+export async function facturarMovimientoComo(
+  movimientoId: string,
+  actorId: string | null,
+): Promise<ActionResult> {
   const mov = await movimientoParaFacturar(movimientoId);
   if (!mov) return { ok: false, error: "Este movimiento no es una venta facturable." };
 
@@ -116,12 +136,12 @@ export async function facturarMovimiento(movimientoId: string): Promise<ActionRe
       importeNeto: String(mov.importeNeto),
       importeIva: String(mov.importeIva),
       importeTotal: String(mov.importeTotal),
-      emitidoPor: user.id,
+      emitidoPor: actorId,
     })
     .returning({ id: facturas.id });
 
   await registrarAuditoria({
-    actorId: user.id,
+    actorId,
     accion: "crear",
     entidad: "factura",
     entidadId: row.id,
@@ -134,6 +154,8 @@ export async function facturarMovimiento(movimientoId: string): Promise<ActionRe
     },
   });
 
+  const envio = await enviarFacturaPorMail(row.id);
+
   revalidatePath("/movimientos");
 
   return {
@@ -142,7 +164,29 @@ export async function facturarMovimiento(movimientoId: string): Promise<ActionRe
     cae: resultado.cae!,
     numero: resultado.numero!,
     tipoComprobante,
+    enviada: envio.ok,
+    envioError: envio.ok ? undefined : envio.error,
   };
+}
+
+/**
+ * Versión "no explota" de `facturarMovimientoComo`, para llamar con
+ * `after()` tras crear una venta sin sesión (ej. pedido de Tiendanube). Si
+ * algo falla (AFIP, mail, datos del cliente) no rompe nada — la venta ya
+ * quedó cargada; el movimiento sigue apareciendo en Movimientos con el
+ * botón "Facturar" para resolverlo a mano.
+ */
+export async function facturarYEnviarSeguro(movimientoId: string): Promise<void> {
+  try {
+    const res = await facturarMovimientoComo(movimientoId, null);
+    if (!res.ok) {
+      console.error("auto-facturar (after):", res.error);
+    } else if (!res.enviada) {
+      console.error("auto-facturar: factura emitida pero no se pudo enviar:", res.envioError);
+    }
+  } catch (e) {
+    console.error("auto-facturar (after):", e);
+  }
 }
 
 function mapConditionIva(c: string | null): number {

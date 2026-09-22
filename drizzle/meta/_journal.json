@@ -50,6 +50,13 @@
       "when": 1789735773091,
       "tag": "0006_afip",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1790104085213,
+      "tag": "0007_envio_facturas",
+      "breakpoints": true
     }
   ]
 }

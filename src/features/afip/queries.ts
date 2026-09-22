@@ -99,6 +99,7 @@ export type FacturaCompleta = {
   importeTotal: number;
   fecha: string;
   clienteNombre: string | null;
+  clienteEmail: string | null;
   clienteCondicionIva: CondicionIva | null;
   items: { producto: string; sku: string; cantidad: number; precioNeto: number }[];
 };
@@ -143,6 +144,7 @@ export async function facturaCompleta(
     importeTotal: Number(f.importeTotal),
     fecha: mov?.fecha ?? f.createdAt.toISOString().slice(0, 10),
     clienteNombre: cliente?.nombre ?? null,
+    clienteEmail: cliente?.email ?? null,
     clienteCondicionIva: (cliente?.condicionIva as CondicionIva) ?? null,
     items: items.map((it) => ({
       producto: it.producto,
