@@ -181,12 +181,20 @@ export function MovimientosHistorial({ rows }: { rows: MovimientoRow[] }) {
                       {Number(r.costo) ? fmtMoney(r.costo) : "—"}
                     </TableCell>
                     <TableCell>
-                      {r.facturaNumero ? (
-                        <Badge variant="outline" className="font-mono text-[11px]">
-                          {r.facturaTipo}{" "}
-                          {String(r.facturaPuntoVenta).padStart(5, "0")}-
-                          {String(r.facturaNumero).padStart(8, "0")}
-                        </Badge>
+                      {r.facturaId ? (
+                        <a
+                          href={`/api/facturas/${r.facturaId}/pdf`}
+                          className="inline-block"
+                        >
+                          <Badge
+                            variant="outline"
+                            className="font-mono text-[11px] hover:bg-muted"
+                          >
+                            {r.facturaTipo}{" "}
+                            {String(r.facturaPuntoVenta).padStart(5, "0")}-
+                            {String(r.facturaNumero).padStart(8, "0")} ↓
+                          </Badge>
+                        </a>
                       ) : FACTURABLE.has(r.tipo) ? (
                         <Button
                           size="sm"

@@ -27,6 +27,7 @@ export type MovimientoRow = {
   cantidad: number;
   ingresoNeto: string;
   costo: string;
+  facturaId: string | null;
   facturaTipo: string | null;
   facturaNumero: number | null;
   facturaPuntoVenta: number | null;
@@ -65,6 +66,7 @@ export async function listMovimientos(
       ingresoNeto: movimientoItems.ingresoNeto,
       costo: movimientoItems.costo,
       createdAt: movimientos.createdAt,
+      facturaId: facturas.id,
       facturaTipo: facturas.tipoComprobante,
       facturaNumero: facturas.numero,
       facturaPuntoVenta: facturas.puntoVenta,
@@ -110,6 +112,7 @@ export async function listMovimientos(
     cantidad: r.cantidad,
     ingresoNeto: r.ingresoNeto,
     costo: r.costo,
+    facturaId: r.facturaId,
     facturaTipo: r.facturaTipo,
     facturaNumero: r.facturaNumero,
     facturaPuntoVenta: r.facturaPuntoVenta,

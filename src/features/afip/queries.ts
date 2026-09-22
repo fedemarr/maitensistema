@@ -3,7 +3,13 @@ import "server-only";
 import { eq, sql } from "drizzle-orm";
 
 import { db } from "@/db";
-import { clientes, facturas, movimientoItems, movimientos } from "@/db/schema";
+import {
+  clientes,
+  facturas,
+  movimientoItems,
+  movimientos,
+  productos,
+} from "@/db/schema";
 import type { CondicionIva } from "@/features/clientes/schema";
 import { round2 } from "@/lib/stock";
 
@@ -76,4 +82,73 @@ export async function facturaDeMovimiento(
     where: eq(facturas.movimientoId, movimientoId),
   });
   return row ?? null;
+}
+
+export type FacturaCompleta = {
+  id: string;
+  puntoVenta: number;
+  tipoComprobante: string;
+  codigoComprobante: number;
+  numero: number;
+  cae: string;
+  caeVencimiento: string;
+  docTipo: number;
+  docNro: string;
+  importeNeto: number;
+  importeIva: number;
+  importeTotal: number;
+  fecha: string;
+  clienteNombre: string | null;
+  clienteCondicionIva: CondicionIva | null;
+  items: { producto: string; sku: string; cantidad: number; precioNeto: number }[];
+};
+
+/** Todo lo necesario para armar el PDF de una factura ya emitida. */
+export async function facturaCompleta(
+  facturaId: string,
+): Promise<FacturaCompleta | null> {
+  const f = await db.query.facturas.findFirst({ where: eq(facturas.id, facturaId) });
+  if (!f) return null;
+
+  const mov = await db.query.movimientos.findFirst({
+    where: eq(movimientos.id, f.movimientoId),
+  });
+  const cliente = mov?.clienteId
+    ? await db.query.clientes.findFirst({ where: eq(clientes.id, mov.clienteId) })
+    : null;
+
+  const items = await db
+    .select({
+      producto: productos.nombre,
+      sku: productos.sku,
+      cantidad: movimientoItems.cantidad,
+      precioNeto: movimientoItems.precioNeto,
+    })
+    .from(movimientoItems)
+    .innerJoin(productos, eq(movimientoItems.productoId, productos.id))
+    .where(eq(movimientoItems.movimientoId, f.movimientoId));
+
+  return {
+    id: f.id,
+    puntoVenta: f.puntoVenta,
+    tipoComprobante: f.tipoComprobante,
+    codigoComprobante: f.codigoComprobante,
+    numero: f.numero,
+    cae: f.cae,
+    caeVencimiento: f.caeVencimiento,
+    docTipo: f.docTipo,
+    docNro: f.docNro,
+    importeNeto: Number(f.importeNeto),
+    importeIva: Number(f.importeIva),
+    importeTotal: Number(f.importeTotal),
+    fecha: mov?.fecha ?? f.createdAt.toISOString().slice(0, 10),
+    clienteNombre: cliente?.nombre ?? null,
+    clienteCondicionIva: (cliente?.condicionIva as CondicionIva) ?? null,
+    items: items.map((it) => ({
+      producto: it.producto,
+      sku: it.sku,
+      cantidad: it.cantidad,
+      precioNeto: Number(it.precioNeto),
+    })),
+  };
 }
