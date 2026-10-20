@@ -21,7 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { facturarMovimiento } from "@/features/afip/actions";
+import { facturarMovimiento, reenviarFactura } from "@/features/afip/actions";
 import type { MovimientoRow } from "@/features/movimientos/queries";
 import { TIPO_LABEL } from "@/features/movimientos/schema";
 import { fmtDate, fmtMoney, fmtNumber } from "@/lib/format";
@@ -51,6 +51,17 @@ export function MovimientosHistorial({ rows }: { rows: MovimientoRow[] }) {
       } else {
         toast.warning(`${base} · no se pudo enviar: ${res.envioError ?? "sin motivo"}`);
       }
+      router.refresh();
+    });
+  }
+
+  function reenviar(facturaId: string) {
+    setPendingId(facturaId);
+    startTransition(async () => {
+      const res = await reenviarFactura(facturaId);
+      setPendingId(null);
+      if (!res.ok) toast.error(res.error);
+      else toast.success("Factura reenviada por mail.");
       router.refresh();
     });
   }
@@ -200,12 +211,18 @@ export function MovimientosHistorial({ rows }: { rows: MovimientoRow[] }) {
                             </Badge>
                           </a>
                           {r.facturaEnviada === false ? (
-                            <span
-                              className="text-[11px] text-destructive"
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 px-1.5 text-[11px] text-destructive"
+                              disabled={pendingId === r.facturaId}
+                              onClick={() => reenviar(r.facturaId!)}
                               title="No se pudo enviar por mail"
                             >
-                              sin enviar
-                            </span>
+                              {pendingId === r.facturaId
+                                ? "Enviando…"
+                                : "sin enviar · reintentar"}
+                            </Button>
                           ) : null}
                         </div>
                       ) : FACTURABLE.has(r.tipo) ? (

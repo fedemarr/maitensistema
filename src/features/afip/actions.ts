@@ -169,6 +169,16 @@ export async function facturarMovimientoComo(
   };
 }
 
+/** Reintenta el envío por mail de una factura ya emitida (no pide CAE de nuevo). */
+export async function reenviarFactura(
+  facturaId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  await requireRole(["admin", "ventas"]);
+  const res = await enviarFacturaPorMail(facturaId);
+  revalidatePath("/movimientos");
+  return res.ok ? { ok: true } : { ok: false, error: res.error ?? "No se pudo enviar." };
+}
+
 /**
  * Versión "no explota" de `facturarMovimientoComo`, para llamar con
  * `after()` tras crear una venta sin sesión (ej. pedido de Tiendanube). Si
