@@ -8,6 +8,7 @@ export const CUENTAS = {
   deudoresPorVentas: "1.1.4",
   mercaderiaConsignacion: "1.1.5",
   proveedoresAPagar: "2.1.1",
+  ivaDebitoFiscal: "2.1.2",
   capitalInicial: "3.1.1",
   ventas: "4.1.1",
   cmv: "5.1.1",

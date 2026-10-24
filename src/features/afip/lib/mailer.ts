@@ -38,18 +38,23 @@ export async function enviarFacturaPorMail(facturaId: string): Promise<Resultado
 
   const numeroFmt = `${String(f.puntoVenta).padStart(5, "0")}-${String(f.numero).padStart(8, "0")}`;
   const nombre = f.clienteNombre ?? "";
+  const esNc = f.tipoComprobante.startsWith("NC");
+  const etiqueta = esNc ? "Nota de Crédito" : "Factura";
+  const bcc = process.env.RESEND_BCC;
 
   const body = {
     from,
     to: [f.clienteEmail],
-    subject: `Tu factura de Maitén Pets — Factura ${f.tipoComprobante} ${numeroFmt}`,
+    ...(bcc ? { bcc: [bcc] } : {}),
+    subject: `Tu ${etiqueta.toLowerCase()} de Maitén Pets — ${f.tipoComprobante} ${numeroFmt}`,
     html:
       `<p>Hola${nombre ? ` ${nombre}` : ""},</p>` +
-      `<p>Te adjuntamos la Factura ${f.tipoComprobante} N.º ${numeroFmt} por tu compra en Maitén Pets, ` +
-      `por un total de $${f.importeTotal.toLocaleString("es-AR", { minimumFractionDigits: 2 })}.</p>` +
+      `<p>Te adjuntamos la ${etiqueta} ${f.tipoComprobante} N.º ${numeroFmt}` +
+      (esNc ? "" : " por tu compra en Maitén Pets") +
+      `, por un total de $${f.importeTotal.toLocaleString("es-AR", { minimumFractionDigits: 2 })}.</p>` +
       `<p>¡Gracias por elegirnos!</p>`,
     attachments: [
-      { filename: `Factura_${f.tipoComprobante}_${numeroFmt}.pdf`, content: pdf.toString("base64") },
+      { filename: `${etiqueta.replace(" ", "_")}_${f.tipoComprobante}_${numeroFmt}.pdf`, content: pdf.toString("base64") },
     ],
   };
 
@@ -67,15 +72,18 @@ export async function enviarFacturaPorMail(facturaId: string): Promise<Resultado
     return marcar(facturaId, { ok: false, error: `Fallo de red enviando el mail: ${msg(e)}` });
   }
 
-  return marcar(facturaId, { ok: true });
+  return marcar(facturaId, { ok: true, enviadoA: f.clienteEmail });
 }
 
-async function marcar(facturaId: string, r: ResultadoEnvio): Promise<ResultadoEnvio> {
+async function marcar(
+  facturaId: string,
+  r: ResultadoEnvio & { enviadoA?: string },
+): Promise<ResultadoEnvio> {
   await db
     .update(facturas)
     .set(
       r.ok
-        ? { enviada: true, enviadaEn: new Date(), envioError: null }
+        ? { enviada: true, enviadaEn: new Date(), envioError: null, enviadoA: r.enviadoA ?? null }
         : { envioError: r.error ?? "Error desconocido" },
     )
     .where(eq(facturas.id, facturaId));

@@ -39,12 +39,21 @@ type Lote = { id: string; nombre: string };
 const NUEVO_CLI = "__new__";
 const SIN_CLI = "__none__";
 
+type CopiarDe = {
+  tipo: TipoManual;
+  clienteId: string;
+  medioPago: string;
+  observaciones: string;
+  items: { productoId: string; cantidad: string; precio: string }[];
+};
+
 export function MovimientoForm({
   productos,
   clientes,
   lotes,
   precios,
   pre,
+  copiarDe,
 }: {
   productos: Prod[];
   clientes: Cli[];
@@ -56,22 +65,27 @@ export function MovimientoForm({
     productoId?: string;
     cantidad?: string;
   };
+  /** Prefill completo desde un movimiento con NC total ("cargar corregido"). */
+  copiarDe?: CopiarDe;
 }) {
   const router = useRouter();
   const [tipo, setTipo] = useState<TipoManual>(
-    (TIPOS_MANUAL as readonly string[]).includes(pre?.tipo ?? "")
-      ? (pre!.tipo as TipoManual)
-      : "venta",
+    copiarDe?.tipo ??
+      ((TIPOS_MANUAL as readonly string[]).includes(pre?.tipo ?? "")
+        ? (pre!.tipo as TipoManual)
+        : "venta"),
   );
   const regla = reglaDe(tipo);
 
   const [fecha, setFecha] = useState(new Date().toISOString().slice(0, 10));
-  const [clienteId, setClienteId] = useState(pre?.clienteId ?? "");
+  const [clienteId, setClienteId] = useState(copiarDe?.clienteId ?? pre?.clienteId ?? "");
   const [nuevoNombre, setNuevoNombre] = useState("");
   const [nuevoTipo, setNuevoTipo] = useState<string>("particular");
-  const [medioPago, setMedioPago] = useState<MedioPago>("efectivo");
+  const [medioPago, setMedioPago] = useState<MedioPago>(
+    (copiarDe?.medioPago as MedioPago) || "efectivo",
+  );
   const [loteId, setLoteId] = useState("");
-  const [obs, setObs] = useState("");
+  const [obs, setObs] = useState(copiarDe?.observaciones ?? "");
   const [items, setItems] = useState<
     {
       key: string;
@@ -83,15 +97,19 @@ export function MovimientoForm({
        * persona edita el campo a mano. */
       precioAuto: boolean;
     }[]
-  >([
-    {
-      key: crypto.randomUUID(),
-      productoId: pre?.productoId ?? productos[0]?.id ?? "",
-      cantidad: pre?.cantidad ?? "1",
-      precio: "",
-      precioAuto: true,
-    },
-  ]);
+  >(
+    copiarDe
+      ? copiarDe.items.map((i) => ({ key: crypto.randomUUID(), ...i, precioAuto: false }))
+      : [
+          {
+            key: crypto.randomUUID(),
+            productoId: pre?.productoId ?? productos[0]?.id ?? "",
+            cantidad: pre?.cantidad ?? "1",
+            precio: "",
+            precioAuto: true,
+          },
+        ],
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

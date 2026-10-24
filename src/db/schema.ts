@@ -440,6 +440,11 @@ export const movimientos = pgTable("movimientos", {
   origen: text("origen").notNull().default("manual"),
   origenExterno: text("origen_externo").unique(),
   observaciones: text("observaciones"),
+  /** "vigente" | "anulado" | "con_nc_total" (adenda v1.3 §2). */
+  estado: text("estado").notNull().default("vigente"),
+  /** Nombre/CUIT/condición IVA del cliente al momento de facturar (adenda
+   * v1.3 D-25) — congela lo que ARCA autorizó aunque el maestro cambie después. */
+  clienteSnapshot: text("cliente_snapshot"),
   creadoPor: uuid("creado_por").references(() => perfiles.id, {
     onDelete: "set null",
   }),
@@ -636,35 +641,47 @@ export const integraciones = pgTable("integraciones", {
 });
 
 /**
- * Facturas emitidas por AFIP/ARCA (WSFEv1) para un movimiento de venta.
- * Un movimiento factura a lo sumo una vez (`movimientoId` único). El CAE es
- * el comprobante de que ARCA autorizó la operación; no se puede "deshacer".
+ * Comprobantes AFIP/ARCA (WSFEv1): facturas y notas de crédito. Un
+ * movimiento puede tener como mucho UNA factura original (A o B) — se
+ * valida en la app, no acá, porque también puede tener varias notas de
+ * crédito (NCA/NCB) apuntando al mismo movimiento. El CAE es lo que ARCA
+ * autorizó; no se puede "deshacer", se corrige con una NC (adenda v1.3 §3).
  */
 export const facturas = pgTable("facturas", {
   id: uuid("id").primaryKey().defaultRandom(),
   movimientoId: uuid("movimiento_id")
     .notNull()
-    .unique()
     .references(() => movimientos.id, { onDelete: "restrict" }),
   puntoVenta: integer("punto_venta").notNull(),
-  /** "A" | "B" (RI vs el resto; Maitén es Responsable Inscripto). */
+  /** "A" | "B" | "NCA" | "NCB". */
   tipoComprobante: text("tipo_comprobante").notNull(),
-  /** Código AFIP del comprobante: 1 = Factura A, 6 = Factura B. */
+  /** Código AFIP: 1=Factura A, 6=Factura B, 3=NC A, 8=NC B. */
   codigoComprobante: integer("codigo_comprobante").notNull(),
   numero: integer("numero").notNull(),
-  cae: text("cae").notNull(),
-  caeVencimiento: date("cae_vencimiento").notNull(),
+  /** Nulo solo en "externa" (venta facturada fuera del sistema, adenda §9.9). */
+  cae: text("cae"),
+  caeVencimiento: date("cae_vencimiento"),
   /** Tipo/número de doc del receptor: 80 = CUIT, 96 = DNI, 99 = sin identificar. */
   docTipo: integer("doc_tipo").notNull(),
   docNro: text("doc_nro").notNull(),
   importeNeto: money("importe_neto"),
   importeIva: money("importe_iva"),
   importeTotal: money("importe_total"),
+  /** Si es una NC: la factura (u otra NC) que corrige. */
+  comprobanteAsociadoId: uuid("comprobante_asociado_id").references(
+    (): AnyPgColumn => facturas.id,
+    { onDelete: "set null" },
+  ),
+  /** "sistema" (emitida acá) | "externa" (facturada antes de la integración, §9.9). */
+  origen: text("origen").notNull().default("sistema"),
+  motivo: text("motivo"),
   emitidoPor: uuid("emitido_por").references(() => perfiles.id, {
     onDelete: "set null",
   }),
   enviada: boolean("enviada").notNull().default(false),
   enviadaEn: timestamp("enviada_en", { withTimezone: true }),
+  /** Mail al que se mandó de verdad (puede diferir del maestro en TN). */
+  enviadoA: text("enviado_a"),
   /** Motivo si el envío falló (sin email, error del proveedor, etc.). */
   envioError: text("envio_error"),
   ...timestamps,

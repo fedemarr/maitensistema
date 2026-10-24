@@ -52,7 +52,7 @@ async function qrDataUrl(f: FacturaCompleta): Promise<string> {
   return QRCode.toDataURL(url, { margin: 1, width: 200 });
 }
 
-/** Arma el PDF de una factura ya emitida (con CAE) en el formato AFIP. */
+/** Arma el PDF de un comprobante ya emitido (factura o NC, con CAE) en formato AFIP. */
 export async function pdfFactura(f: FacturaCompleta): Promise<Buffer> {
   const doc = new PDFDocument({ size: "A4", margin: 40 });
   const chunks: Buffer[] = [];
@@ -60,7 +60,9 @@ export async function pdfFactura(f: FacturaCompleta): Promise<Buffer> {
   const done = new Promise<Buffer>((resolve) => doc.on("end", () => resolve(Buffer.concat(chunks))));
 
   const W = doc.page.width - 80; // ancho útil
-  const letra = f.tipoComprobante;
+  const esNc = f.tipoComprobante.startsWith("NC");
+  const letra = f.tipoComprobante.slice(-1); // "A" | "B" (de "A"/"B"/"NCA"/"NCB")
+  const titulo = esNc ? "NOTA DE CRÉDITO" : "FACTURA";
 
   // ── Encabezado ──
   doc.font("Helvetica-Bold").fontSize(16).text(EMISOR.razonSocial, 40, 40);
@@ -74,7 +76,7 @@ export async function pdfFactura(f: FacturaCompleta): Promise<Buffer> {
     width: 175,
     align: "center",
   });
-  doc.font("Helvetica-Bold").fontSize(11).text("FACTURA", boxX, 88, { width: 175, align: "center" });
+  doc.font("Helvetica-Bold").fontSize(11).text(titulo, boxX, 88, { width: 175, align: "center" });
 
   doc.font("Helvetica").fontSize(9);
   doc.text(
@@ -102,10 +104,19 @@ export async function pdfFactura(f: FacturaCompleta): Promise<Buffer> {
     216,
   );
 
-  doc.moveTo(40, 236).lineTo(40 + W, 236).stroke();
+  let y = 236;
+  if (f.asociado) {
+    doc.font("Helvetica").fontSize(8).text(
+      `Comprobante que corrige: ${f.asociado.tipoComprobante} ${String(f.asociado.puntoVenta).padStart(5, "0")}-${String(f.asociado.numero).padStart(8, "0")}`,
+      40,
+      y + 6,
+    );
+    y += 20;
+  }
+  doc.moveTo(40, y).lineTo(40 + W, y).stroke();
 
   // ── Ítems ──
-  let y = 248;
+  y += 12;
   doc.font("Helvetica-Bold").fontSize(8);
   doc.text("Código", 40, y, { width: 70 });
   doc.text("Producto / Servicio", 110, y, { width: 220 });
@@ -163,13 +174,20 @@ export async function pdfFactura(f: FacturaCompleta): Promise<Buffer> {
   doc.moveTo(40, y).lineTo(40 + W, y).stroke();
   y += 10;
 
-  const qr = await qrDataUrl(f);
-  doc.image(qr, 40, y, { width: 80 });
-
-  doc.font("Helvetica-Bold").fontSize(9).text("Comprobante Autorizado", 140, y + 6);
-  doc.font("Helvetica").fontSize(9);
-  doc.text(`CAE N.º: ${f.cae}`, 140, y + 22);
-  doc.text(`Fecha de Vto. de CAE: ${fmtFechaCorta(f.caeVencimiento)}`, 140, y + 36);
+  if (f.cae && f.caeVencimiento) {
+    const qr = await qrDataUrl(f);
+    doc.image(qr, 40, y, { width: 80 });
+    doc.font("Helvetica-Bold").fontSize(9).text("Comprobante Autorizado", 140, y + 6);
+    doc.font("Helvetica").fontSize(9);
+    doc.text(`CAE N.º: ${f.cae}`, 140, y + 22);
+    doc.text(`Fecha de Vto. de CAE: ${fmtFechaCorta(f.caeVencimiento)}`, 140, y + 36);
+  } else {
+    doc.font("Helvetica").fontSize(9).text(
+      "Comprobante externo — emitido fuera del sistema, sin CAE propio.",
+      40,
+      y,
+    );
+  }
 
   doc.end();
   return done;

@@ -159,12 +159,14 @@ export async function generarAsientoMovimiento(
   const ref = { movimientoId };
   const base = { fecha: mov.fecha, descripcion: desc, origen: "movimiento", creadorId, ref };
 
-  // Venta / venta desde consignación → CMV + Ventas.
+  // Venta / venta desde consignación → CMV + Ventas + IVA Débito Fiscal.
   if (regla.impacto === "ingreso") {
     const cuentaMerc =
       regla.consig === "vender"
         ? CUENTAS.mercaderiaConsignacion
         : CUENTAS.mercaderia;
+    const iva = redondear(totalNeto * 0.21);
+    const totalConIva = redondear(totalNeto + iva);
     const cuentaCobro =
       mov.medioPago === "credito"
         ? CUENTAS.deudoresPorVentas
@@ -174,8 +176,9 @@ export async function generarAsientoMovimiento(
       lineas: [
         { codigo: CUENTAS.cmv, debe: costoTotal, haber: 0, concepto: "Costo de la mercadería vendida" },
         { codigo: cuentaMerc, debe: 0, haber: costoTotal, concepto: "Baja de mercadería" },
-        { codigo: cuentaCobro, debe: totalNeto, haber: 0 },
+        { codigo: cuentaCobro, debe: totalConIva, haber: 0 },
         { codigo: CUENTAS.ventas, debe: 0, haber: totalNeto },
+        { codigo: CUENTAS.ivaDebitoFiscal, debe: 0, haber: iva },
       ],
     });
   }
@@ -232,6 +235,58 @@ export async function generarAsientoMovimiento(
   }
 
   return null;
+}
+
+/**
+ * Asiento de una nota de crédito (adenda v1.3 §3): reversa Ventas + IVA
+ * Débito Fiscal proporcional al importe notado; si hubo devolución física,
+ * reversa también CMV/Mercadería por el costo de las unidades devueltas.
+ */
+export async function generarAsientoNotaCredito(
+  tx: Tx,
+  args: {
+    movimientoId: string;
+    fecha: string;
+    importeNeto: number;
+    importeIva: number;
+    importeTotal: number;
+    medioPago: string | null;
+    esConsignacion: boolean;
+    /** Costo a reversar (0 si no hubo devolución física). */
+    costoDevuelto: number;
+    creadorId: string | null;
+    descripcion: string;
+  },
+): Promise<string | null> {
+  const cuentaCobro =
+    args.medioPago === "credito"
+      ? CUENTAS.deudoresPorVentas
+      : (cuentaMedioPago(args.medioPago) ?? CUENTAS.caja);
+
+  const lineas: LineaSpec[] = [
+    { codigo: CUENTAS.ventas, debe: args.importeNeto, haber: 0, concepto: "Reversa por NC" },
+    { codigo: CUENTAS.ivaDebitoFiscal, debe: args.importeIva, haber: 0, concepto: "Reversa por NC" },
+    { codigo: cuentaCobro, debe: 0, haber: args.importeTotal },
+  ];
+
+  if (args.costoDevuelto > 0) {
+    const cuentaMerc = args.esConsignacion
+      ? CUENTAS.mercaderiaConsignacion
+      : CUENTAS.mercaderia;
+    lineas.push(
+      { codigo: cuentaMerc, debe: args.costoDevuelto, haber: 0, concepto: "Devolución física" },
+      { codigo: CUENTAS.cmv, debe: 0, haber: args.costoDevuelto, concepto: "Devolución física" },
+    );
+  }
+
+  return insertarAsiento(tx, {
+    fecha: args.fecha,
+    descripcion: args.descripcion,
+    origen: "nota_credito",
+    creadorId: args.creadorId,
+    ref: { movimientoId: args.movimientoId },
+    lineas,
+  });
 }
 
 /** Compra de insumos → Mercadería / (Caja|Banco o Proveedores a pagar). */

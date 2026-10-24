@@ -49,3 +49,15 @@ export function fmtDate(value: string | Date | null | undefined): string {
     year: "numeric",
   });
 }
+
+/** "22/09 14:32" — para timestamps (envío de mail, etc.). */
+export function fmtDateHora(value: string | Date | null | undefined): string {
+  if (!value) return "—";
+  const d = typeof value === "string" ? new Date(value) : value;
+  return d.toLocaleString("es-AR", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}

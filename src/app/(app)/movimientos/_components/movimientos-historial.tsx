@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -21,13 +22,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { facturarMovimiento, reenviarFactura } from "@/features/afip/actions";
+import { reenviarFactura } from "@/features/afip/actions";
+import { FacturarDialog } from "@/features/afip/_components/facturar-dialog";
 import type { MovimientoRow } from "@/features/movimientos/queries";
 import { TIPO_LABEL } from "@/features/movimientos/schema";
-import { fmtDate, fmtMoney, fmtNumber } from "@/lib/format";
+import { fmtDate, fmtDateHora, fmtMoney, fmtNumber } from "@/lib/format";
 
 const ENTRA = new Set(["produccion", "devolucion_consignacion"]);
 const FACTURABLE = new Set(["venta", "venta_consignacion"]);
+const ESTADO_LABEL: Record<string, string> = {
+  anulado: "Anulado",
+  con_nc_total: "Con NC",
+};
 
 export function MovimientosHistorial({ rows }: { rows: MovimientoRow[] }) {
   const router = useRouter();
@@ -35,25 +41,6 @@ export function MovimientosHistorial({ rows }: { rows: MovimientoRow[] }) {
   const [prod, setProd] = useState("todos");
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [, startTransition] = useTransition();
-
-  function facturar(movimientoId: string) {
-    setPendingId(movimientoId);
-    startTransition(async () => {
-      const res = await facturarMovimiento(movimientoId);
-      setPendingId(null);
-      if (!res.ok) {
-        toast.error(res.error);
-        return;
-      }
-      const base = `Factura ${res.tipoComprobante} N.º ${res.numero} — CAE ${res.cae}`;
-      if (res.enviada) {
-        toast.success(`${base} · enviada por mail`);
-      } else {
-        toast.warning(`${base} · no se pudo enviar: ${res.envioError ?? "sin motivo"}`);
-      }
-      router.refresh();
-    });
-  }
 
   function reenviar(facturaId: string) {
     setPendingId(facturaId);
@@ -138,13 +125,14 @@ export function MovimientosHistorial({ rows }: { rows: MovimientoRow[] }) {
               <TableHead className="text-right">Ingreso</TableHead>
               <TableHead className="text-right">Costo</TableHead>
               <TableHead>Comprobante</TableHead>
+              <TableHead></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filtrados.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={9}
+                  colSpan={10}
                   className="py-8 text-center text-sm text-muted-foreground"
                 >
                   Sin movimientos.
@@ -156,14 +144,24 @@ export function MovimientosHistorial({ rows }: { rows: MovimientoRow[] }) {
                 const neutro =
                   r.tipo === "consignacion" ||
                   r.tipo === "devolucion_consignacion";
+                const anulado = r.estado !== "vigente";
                 return (
-                  <TableRow key={r.itemId}>
-                    <TableCell>{fmtDate(r.fecha)}</TableCell>
-                    <TableCell className="font-medium">{r.producto}</TableCell>
+                  <TableRow key={r.itemId} className={anulado ? "opacity-60" : undefined}>
+                    <TableCell className={anulado ? "line-through" : undefined}>
+                      {fmtDate(r.fecha)}
+                    </TableCell>
+                    <TableCell className={`font-medium ${anulado ? "line-through" : ""}`}>
+                      {r.producto}
+                    </TableCell>
                     <TableCell>
-                      <Badge variant="secondary">
-                        {TIPO_LABEL[r.tipo] ?? r.tipo}
-                      </Badge>
+                      <div className="flex flex-wrap items-center gap-1">
+                        <Badge variant="secondary">{TIPO_LABEL[r.tipo] ?? r.tipo}</Badge>
+                        {anulado ? (
+                          <Badge variant="outline" className="text-[10px] text-destructive">
+                            {ESTADO_LABEL[r.estado] ?? r.estado}
+                          </Badge>
+                        ) : null}
+                      </div>
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       {r.cliente ?? "—"}
@@ -196,11 +194,8 @@ export function MovimientosHistorial({ rows }: { rows: MovimientoRow[] }) {
                     </TableCell>
                     <TableCell>
                       {r.facturaId ? (
-                        <div className="flex items-center gap-1.5">
-                          <a
-                            href={`/api/facturas/${r.facturaId}/pdf`}
-                            className="inline-block"
-                          >
+                        <div className="flex flex-col gap-1">
+                          <a href={`/api/facturas/${r.facturaId}/pdf`} className="inline-block">
                             <Badge
                               variant="outline"
                               className="font-mono text-[11px] hover:bg-muted"
@@ -210,35 +205,33 @@ export function MovimientosHistorial({ rows }: { rows: MovimientoRow[] }) {
                               {String(r.facturaNumero).padStart(8, "0")} ↓
                             </Badge>
                           </a>
-                          {r.facturaEnviada === false ? (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-6 px-1.5 text-[11px] text-destructive"
-                              disabled={pendingId === r.facturaId}
-                              onClick={() => reenviar(r.facturaId!)}
-                              title="No se pudo enviar por mail"
-                            >
-                              {pendingId === r.facturaId
-                                ? "Enviando…"
-                                : "sin enviar · reintentar"}
-                            </Button>
-                          ) : null}
+                          <EstadoEnvio
+                            r={r}
+                            pending={pendingId === r.facturaId}
+                            onReenviar={() => reenviar(r.facturaId!)}
+                          />
                         </div>
-                      ) : FACTURABLE.has(r.tipo) ? (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          disabled={pendingId === r.movimientoId}
-                          onClick={() => facturar(r.movimientoId)}
-                        >
-                          {pendingId === r.movimientoId
-                            ? "Facturando…"
-                            : "Facturar"}
-                        </Button>
+                      ) : FACTURABLE.has(r.tipo) && !anulado ? (
+                        <FacturarDialog
+                          movimientoId={r.movimientoId}
+                          onEmitida={() => router.refresh()}
+                          trigger={
+                            <Button size="sm" variant="outline">
+                              Facturar
+                            </Button>
+                          }
+                        />
                       ) : (
                         <span className="text-muted-foreground">—</span>
                       )}
+                    </TableCell>
+                    <TableCell>
+                      <Link
+                        href={`/movimientos/${r.movimientoId}`}
+                        className="text-xs text-muted-foreground hover:underline"
+                      >
+                        Ver
+                      </Link>
                     </TableCell>
                   </TableRow>
                 );
@@ -248,5 +241,58 @@ export function MovimientosHistorial({ rows }: { rows: MovimientoRow[] }) {
         </Table>
       </div>
     </div>
+  );
+}
+
+/** Estado de envío del comprobante, siempre visible (adenda v1.3 §9.2). */
+function EstadoEnvio({
+  r,
+  pending,
+  onReenviar,
+}: {
+  r: MovimientoRow;
+  pending: boolean;
+  onReenviar: () => void;
+}) {
+  if (r.facturaEnviada) {
+    return (
+      <div className="flex items-center gap-1.5">
+        <span className="text-[11px] text-muted-foreground">
+          Enviada{r.facturaEnviadoA ? ` · ${r.facturaEnviadoA}` : ""}
+          {r.facturaEnviadaEn ? ` · ${fmtDateHora(r.facturaEnviadaEn)}` : ""}
+        </span>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-5 px-1 text-[10px]"
+          disabled={pending}
+          onClick={onReenviar}
+        >
+          {pending ? "…" : "reenviar"}
+        </Button>
+      </div>
+    );
+  }
+  if (r.facturaEnvioError?.includes("no tiene email")) {
+    return (
+      <span className="text-[11px] text-destructive">
+        Sin mail ·{" "}
+        <a href={`/clientes`} className="underline">
+          cargar en Clientes
+        </a>
+      </span>
+    );
+  }
+  return (
+    <Button
+      size="sm"
+      variant="ghost"
+      className="h-6 px-1.5 text-[11px] text-destructive"
+      disabled={pending}
+      onClick={onReenviar}
+      title={r.facturaEnvioError ?? undefined}
+    >
+      {pending ? "Enviando…" : "Error de envío · reintentar"}
+    </Button>
   );
 }

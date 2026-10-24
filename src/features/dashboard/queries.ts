@@ -6,16 +6,20 @@ import { db } from "@/db";
 import {
   ccMovimientos,
   consignaciones,
+  facturas,
   movimientoItems,
   movimientos,
   productos,
   stockLotes,
 } from "@/db/schema";
+import { facturasPendientesEnvio } from "@/features/afip/queries";
 
 export type ResumenInicio = {
   alertasStock: number;
   consignacionesVencidas: number;
   porCobrar: number;
+  ventasSinFacturar: number;
+  facturasSinEnviar: number;
   mes: { unidades: number; ingresos: number; bruto: number };
 };
 
@@ -24,7 +28,7 @@ export async function resumenInicio(): Promise<ResumenInicio> {
   const hoy = new Date().toISOString().slice(0, 10);
   const desdeMes = `${hoy.slice(0, 7)}-01`;
 
-  const [stockRows, venc, cobrar, ventasMes] = await Promise.all([
+  const [stockRows, venc, cobrar, ventasMes, sinFacturar, sinEnviar] = await Promise.all([
     // Depósito por producto terminado vs. su mínimo.
     db
       .select({
@@ -69,6 +73,24 @@ export async function resumenInicio(): Promise<ResumenInicio> {
           lte(movimientos.fecha, hoy),
         ),
       ),
+
+    // Ventas vigentes sin ninguna factura todavía (adenda v1.3 §9.4).
+    db
+      .select({ n: sql<number>`count(distinct ${movimientos.id})::int` })
+      .from(movimientos)
+      .leftJoin(
+        facturas,
+        and(eq(facturas.movimientoId, movimientos.id), sql`${facturas.tipoComprobante} in ('A','B')`),
+      )
+      .where(
+        and(
+          sql`${movimientos.tipo} in ('venta', 'venta_consignacion')`,
+          eq(movimientos.estado, "vigente"),
+          sql`${facturas.id} is null`,
+        ),
+      ),
+
+    facturasPendientesEnvio(),
   ]);
 
   const alertasStock = stockRows.filter(
@@ -84,6 +106,8 @@ export async function resumenInicio(): Promise<ResumenInicio> {
       0,
       Number(cobrar[0]?.debe ?? 0) - Number(cobrar[0]?.haber ?? 0),
     ),
+    ventasSinFacturar: sinFacturar[0]?.n ?? 0,
+    facturasSinEnviar: sinEnviar,
     mes: {
       unidades: Number(ventasMes[0]?.unidades ?? 0),
       ingresos: ing,

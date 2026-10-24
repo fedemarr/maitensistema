@@ -11,7 +11,7 @@ const WSFE_URL =
 const parser = new XMLParser({ ignoreAttributes: false, removeNSPrefix: true });
 
 /** Códigos de comprobante WSFE que usa el sistema. */
-export const CBTE_TIPO = { facturaA: 1, facturaB: 6 } as const;
+export const CBTE_TIPO = { facturaA: 1, facturaB: 6, ncA: 3, ncB: 8 } as const;
 /** Alícuota de IVA general (Id AFIP 5 = 21%). */
 export const ALIC_IVA_21 = 5;
 
@@ -76,6 +76,8 @@ export type ItemFactura = {
   importeNeto: number;
   importeIva: number;
   importeTotal: number;
+  /** Solo para notas de crédito: el comprobante que corrigen. */
+  cbteAsoc?: { tipo: number; ptoVta: number; nro: number };
 };
 
 export type ResultadoCae = {
@@ -98,6 +100,14 @@ export async function feCaeSolicitar(
   const fch = fecha.replaceAll("-", "");
   const n2 = (x: number) => x.toFixed(2);
 
+  const cbtesAsoc = item.cbteAsoc
+    ? `<ar:CbtesAsoc><ar:CbteAsoc>` +
+      `<ar:Tipo>${item.cbteAsoc.tipo}</ar:Tipo>` +
+      `<ar:PtoVta>${item.cbteAsoc.ptoVta}</ar:PtoVta>` +
+      `<ar:Nro>${item.cbteAsoc.nro}</ar:Nro>` +
+      `</ar:CbteAsoc></ar:CbtesAsoc>`
+    : "";
+
   const det =
     `<ar:FECAEDetRequest>` +
     `<ar:Concepto>1</ar:Concepto>` +
@@ -114,6 +124,7 @@ export async function feCaeSolicitar(
     `<ar:ImpTrib>0.00</ar:ImpTrib>` +
     `<ar:MonId>PES</ar:MonId>` +
     `<ar:MonCotiz>1</ar:MonCotiz>` +
+    cbtesAsoc +
     `<ar:CondicionIVAReceptorId>${item.condicionIvaReceptorId}</ar:CondicionIVAReceptorId>` +
     `<ar:Iva><ar:AlicIva>` +
     `<ar:Id>${ALIC_IVA_21}</ar:Id>` +

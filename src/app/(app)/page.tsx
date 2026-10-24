@@ -54,6 +54,20 @@ export default async function DashboardPage() {
       d: `${fmtNumber(r.mes.unidades)} u vendidas · ${fmtMoney(r.mes.ingresos)} ingresos`,
       href: "/reportes",
     },
+    {
+      k: "Ventas sin facturar",
+      v: fmtNumber(r.ventasSinFacturar),
+      d: "para que no se pasen de días (fecha de factura ≠ fecha de venta)",
+      alerta: r.ventasSinFacturar > 0,
+      href: "/movimientos",
+    },
+    {
+      k: "Facturas sin enviar",
+      v: fmtNumber(r.facturasSinEnviar),
+      d: "emitidas, pendientes de mandar por mail",
+      alerta: r.facturasSinEnviar > 0,
+      href: "/movimientos",
+    },
   ];
 
   const atajos = [
