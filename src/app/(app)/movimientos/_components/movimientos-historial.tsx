@@ -228,6 +228,7 @@ export function MovimientosHistorial({ rows }: { rows: MovimientoRow[] }) {
                     <TableCell>
                       <Link
                         href={`/movimientos/${r.movimientoId}`}
+                        prefetch={false}
                         className="text-xs text-muted-foreground hover:underline"
                       >
                         Ver
